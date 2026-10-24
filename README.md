@@ -1,4 +1,4 @@
-# MIMO Python Visual Playground
+# Python Visual Playground
 
 **See how Python thinks.** MIMO turns a real Python execution trace into a step-by-step visual story: source line, names and values, heap references, stack frames, output, calls, returns, loops, recursion, and exceptions.
 
