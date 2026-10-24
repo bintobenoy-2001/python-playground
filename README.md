@@ -1,4 +1,4 @@
-# 🐍 Python Visual Playground
+# Python Visual Playground
 
 **See how Python thinks.** Write Python, hit run, and watch it execute step by step — variables, values, the call stack, loops, recursion, output, and errors all come alive as an interactive visual story.
 
@@ -12,7 +12,7 @@
 
 ---
 
-## ✨ What it does
+## What it does
 
 - **Step through real execution** — every line, call, return, and exception from an actual Python run.
 - **Watch state change** — variables, heap objects, and references update as you move through time.
@@ -22,7 +22,7 @@
 
 ---
 
-## 🚀 Quick start
+## Quick start
 
 ```bash
 python -m venv .venv
@@ -53,7 +53,7 @@ Check `GET /api/health` to confirm whether the tutor is `enabled` or `offline`.
 
 ---
 
-## 🧩 How it works
+## How it works
 
 | Layer | What it does |
 | --- | --- |
@@ -66,7 +66,7 @@ Check `GET /api/health` to confirm whether the tutor is `enabled` or `offline`.
 
 ---
 
-## 🧪 Tests
+## Tests
 
 ```bash
 pytest backend/tests -q      # backend tracer
@@ -75,7 +75,7 @@ cd frontend && npm test      # frontend
 
 ---
 
-## 📚 Rebuild the frontend
+## Rebuild the frontend
 
 ```bash
 cd frontend
@@ -87,7 +87,7 @@ FastAPI serves `frontend/dist` automatically when the production build exists.
 
 ---
 
-## ✅ Supported in v1
+## Supported in v1
 
 Variables, arithmetic, strings, lists, tuples, dicts, sets · `if`/`for`/`while`/`break`/`continue` · functions, recursion, local/global scope · `print` and replayed `input()` · exceptions and `try`/`except` · basic classes and comprehensions · safe standard modules (`math`, `random`, `collections`, `itertools`, `re`, and more).
 
