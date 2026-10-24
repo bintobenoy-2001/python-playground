@@ -17,3 +17,8 @@ frontend/.build/
 *.log
 server.log
 
+# IDE
+.kiro/
+.vscode/
+.idea/
+

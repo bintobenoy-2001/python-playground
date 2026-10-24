@@ -12,6 +12,14 @@
 
 ---
 
+## Demo in Action
+
+https://github.com/bintobenoy-2001/python-playground/raw/main/demo.mp4
+
+*A 40-second walkthrough showing step-by-step execution tracing, shared memory inspection, live AI tutor responses, recursion trees, and instant theme switching.*
+
+---
+
 ## What it does
 
 - **Step through real execution** — every line, call, return, and exception from an actual Python run.
