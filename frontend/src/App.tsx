@@ -89,6 +89,9 @@ function App() {
         <div className="safety-pill"><ShieldCheck size={14}/><span>Restricted execution</span></div>
         <button className="header-button" title="Keyboard shortcuts"><Keyboard size={16}/></button>
         <button className="header-button" onClick={() => setTheme(t => t === 'dark' ? 'light' : 'dark')} title="Toggle theme">{theme === 'dark' ? <Sun size={16}/> : <Moon size={16}/>}</button>
+        <button className={`header-button tutor-pill-btn ${tutorConfig.apiKey ? 'configured' : ''}`} onClick={() => setShowSettings(true)} title="AI Tutor & API Key Settings">
+          <Sparkles size={14}/><span>{tutorConfig.apiKey ? `${tutorConfig.provider.toUpperCase()} Key` : 'AI Tutor Key'}</span>
+        </button>
         <button className="header-button" onClick={() => setShowSettings(true)} title="Settings"><Settings2 size={16}/></button>
         <button className="run-button" onClick={() => void execute()} disabled={loading || !code.trim()}>{loading ? <span className="spinner"/> : <Play size={16} fill="currentColor"/>}<span>{loading ? 'Tracing…' : 'Run & visualise'}</span><kbd>⌘↵</kbd></button>
       </div>
@@ -110,7 +113,7 @@ function App() {
         <VisualCanvas result={stale ? EMPTY_RESULT : result} event={stale ? undefined : event} index={index} mode={mode} onMode={setMode}/>
       </div>
       <div className={`workspace-pane right-pane ${mobileTab === 'state' ? 'mobile-active' : ''}`}>
-        <Inspector event={stale ? undefined : event} previous={stale ? undefined : previous} explanationMode={explanationMode} onExplanationMode={setExplanationMode} code={code} error={result.error} tutorConfig={tutorConfig}/>
+        <Inspector event={stale ? undefined : event} previous={stale ? undefined : previous} explanationMode={explanationMode} onExplanationMode={setExplanationMode} code={code} error={result.error} tutorConfig={tutorConfig} onOpenSettings={() => setShowSettings(true)}/>
       </div>
     </main>
 
@@ -182,6 +185,18 @@ function TutorSettings({ config, onChange }: { config: TutorConfig; onChange: (c
           <option value="custom">Custom (OpenAI-compatible)</option>
         </select>
       </label>
+      {config.provider === 'server' && (
+        <div className="server-provider-callout">
+          <p>Currently using <b>Server Default</b> (or offline). To enter your own API key, choose a provider:</p>
+          <div className="provider-chips">
+            <button type="button" className="provider-chip" onClick={() => update({ provider: 'openai' })}>+ OpenAI</button>
+            <button type="button" className="provider-chip" onClick={() => update({ provider: 'anthropic' })}>+ Anthropic (Claude)</button>
+            <button type="button" className="provider-chip" onClick={() => update({ provider: 'openrouter' })}>+ OpenRouter</button>
+            <button type="button" className="provider-chip" onClick={() => update({ provider: 'nvidia' })}>+ NVIDIA NIM</button>
+            <button type="button" className="provider-chip" onClick={() => update({ provider: 'custom' })}>+ Custom Endpoint</button>
+          </div>
+        </div>
+      )}
       {config.provider !== 'server' && <>
         <label className="tcfg">
           <span>API key {meta?.keyUrl && <a href={meta.keyUrl} target="_blank" rel="noopener noreferrer">{meta.keyUrlLabel} ↗</a>}</span>
