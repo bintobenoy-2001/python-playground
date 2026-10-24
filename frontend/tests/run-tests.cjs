@@ -1,0 +1,17 @@
+const cp = require('child_process')
+const path = require('path')
+const root = path.resolve(__dirname, '..')
+cp.execFileSync('tsc', ['-p', path.join(root, 'tsconfig.app.json')], { stdio:'inherit' })
+const fs = require('fs')
+const compiled = fs.readFileSync(path.join(root, '.build/lib/trace.js'), 'utf8')
+const loaded = { exports: {} }
+new Function('module', 'exports', 'require', compiled)(loaded, loaded.exports, require)
+const { deriveChanges, getExecutedLines } = loaded.exports
+const event = variables => ({ id:0,type:'line',line:1,function:'<module>',source:'',snapshot:{variables,heap:[]},stack:[],output:'',beginner:'',technical:'' })
+const first = event([{name:'x',scope:'global',type:'int',value:'1',objectId:null}])
+const second = event([{name:'x',scope:'global',type:'int',value:'2',objectId:null},{name:'y',scope:'global',type:'str',value:"'ok'",objectId:null}])
+const changes = deriveChanges(first, second)
+if (changes.length !== 2 || changes[0].kind !== 'changed' || changes[1].kind !== 'created') throw new Error('deriveChanges test failed')
+const lines = getExecutedLines([{...first,line:1},{...second,line:3}],1)
+if (!lines.has(1)||!lines.has(3)) throw new Error('getExecutedLines test failed')
+console.log('2 frontend trace utility tests passed')

@@ -1,0 +1,23 @@
+import type { SVGProps } from 'react'
+
+type Props = SVGProps<SVGSVGElement> & { size?: number | string }
+const paths: Record<string, React.ReactNode> = {
+  Copy:<><rect x="8" y="8" width="11" height="11" rx="2"/><path d="M16 8V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h3"/></>,
+  Eraser:<><path d="m7 21-4-4 10.5-10.5a2.8 2.8 0 0 1 4 4L7 21Z"/><path d="m11 10 4 4M7 21h12"/></>,
+  Play:<path d="m8 5 11 7-11 7Z"/>, Pause:<><path d="M9 5v14M15 5v14"/></>, Square:<rect x="6" y="6" width="12" height="12" rx="1"/>,
+  RotateCcw:<><path d="M4 9V4h5"/><path d="M5 5a9 9 0 1 1-1 9"/></>, RefreshCw:<><path d="M20 7V3h-4M4 17v4h4"/><path d="M19 4a9 9 0 0 0-14 3M5 20a9 9 0 0 0 14-3"/></>,
+  Sparkles:<><path d="m12 3 1.2 3.8L17 8l-3.8 1.2L12 13l-1.2-3.8L7 8l3.8-1.2Z"/><path d="m5 14 .8 2.2L8 17l-2.2.8L5 20l-.8-2.2L2 17l2.2-.8ZM19 12l.6 1.4L21 14l-1.4.6L19 16l-.6-1.4L17 14l1.4-.6Z"/></>,
+  ChevronRight:<path d="m9 18 6-6-6-6"/>, ChevronDown:<path d="m6 9 6 6 6-6"/>, ArrowRight:<><path d="M5 12h14"/><path d="m14 7 5 5-5 5"/></>,
+  SkipBack:<><path d="M6 5v14M18 6l-9 6 9 6Z"/></>, SkipForward:<><path d="M18 5v14M6 6l9 6-9 6Z"/></>,
+  Plus:<><path d="M12 5v14M5 12h14"/></>, Minus:<path d="M5 12h14"/>, X:<><path d="m6 6 12 12M18 6 6 18"/></>, Check:<path d="m5 12 4 4L19 6"/>,
+  Code2:<><path d="m8 9-4 3 4 3M16 9l4 3-4 3M14 5l-4 14"/></>, Braces:<><path d="M8 3H6a2 2 0 0 0-2 2v4l-2 3 2 3v4a2 2 0 0 0 2 2h2M16 3h2a2 2 0 0 1 2 2v4l2 3-2 3v4a2 2 0 0 1-2 2h-2"/></>,
+  Box:<><path d="m4 7 8-4 8 4-8 4Z"/><path d="M4 7v10l8 4 8-4V7M12 11v10"/></>, Network:<><circle cx="12" cy="5" r="2"/><circle cx="5" cy="18" r="2"/><circle cx="19" cy="18" r="2"/><path d="m11 7-5 9M13 7l5 9M7 18h10"/></>,
+  GitBranch:<><circle cx="6" cy="4" r="2"/><circle cx="18" cy="8" r="2"/><circle cx="6" cy="20" r="2"/><path d="M6 6v12M8 12h4a6 6 0 0 0 6-2"/></>, Route:<><circle cx="5" cy="6" r="2"/><circle cx="19" cy="18" r="2"/><path d="M7 6h5a3 3 0 0 1 0 6H9a3 3 0 0 0 0 6h8"/></>, Repeat2:<><path d="m3 7 3-3 3 3M6 4v11a3 3 0 0 0 3 3h6M21 17l-3 3-3-3M18 20V9a3 3 0 0 0-3-3H9"/></>,
+  CircleDot:<><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="2"/></>, Maximize2:<><path d="M8 3H3v5M16 3h5v5M8 21H3v-5M16 21h5v-5"/></>, ZoomIn:<><circle cx="10" cy="10" r="6"/><path d="m15 15 5 5M10 7v6M7 10h6"/></>,
+  Info:<><circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7h.01"/></>, AlertTriangle:<><path d="m12 3 10 18H2Z"/><path d="M12 9v5M12 18h.01"/></>, AlertCircle:<><circle cx="12" cy="12" r="9"/><path d="M12 7v6M12 17h.01"/></>,
+  Search:<><circle cx="10" cy="10" r="6"/><path d="m15 15 5 5"/></>, Settings2:<><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M5 5l2 2M17 17l2 2M19 5l-2 2M7 17l-2 2"/></>,
+  ShieldCheck:<><path d="M12 3 4 6v6c0 5 3.5 8 8 10 4.5-2 8-5 8-10V6Z"/><path d="m8 12 3 3 5-6"/></>, Keyboard:<><rect x="3" y="6" width="18" height="12" rx="2"/><path d="M7 10h.01M11 10h.01M15 10h.01M18 10h.01M7 14h10"/></>,
+  Sun:<><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M2 12h2M20 12h2M5 5l1.5 1.5M17.5 17.5 19 19M19 5l-1.5 1.5M6.5 17.5 5 19"/></>, Moon:<path d="M20 15a8 8 0 0 1-11-11 9 9 0 1 0 11 11Z"/>, Gauge:<><path d="M4 18a9 9 0 1 1 16 0"/><path d="m12 14 4-5"/></>, Zap:<path d="m13 2-9 12h7l-1 8 9-12h-7Z"/>, CornerDownLeft:<><path d="M20 5v5a4 4 0 0 1-4 4H5"/><path d="m9 10-4 4 4 4"/></>,
+}
+function make(name:string){return function Icon({size=24,...props}:Props){return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" {...props}>{paths[name] || <circle cx="12" cy="12" r="8"/>}</svg>}}
+export const Copy=make('Copy'),Eraser=make('Eraser'),RotateCcw=make('RotateCcw'),Sparkles=make('Sparkles'),Box=make('Box'),Braces=make('Braces'),ChevronRight=make('ChevronRight'),CircleDot=make('CircleDot'),CornerDownLeft=make('CornerDownLeft'),GitBranch=make('GitBranch'),Maximize2=make('Maximize2'),Minus=make('Minus'),Network=make('Network'),Plus=make('Plus'),RefreshCw=make('RefreshCw'),Repeat2=make('Repeat2'),Route=make('Route'),ZoomIn=make('ZoomIn'),AlertTriangle=make('AlertTriangle'),ArrowRight=make('ArrowRight'),ChevronDown=make('ChevronDown'),Info=make('Info'),Gauge=make('Gauge'),Pause=make('Pause'),Play=make('Play'),SkipBack=make('SkipBack'),SkipForward=make('SkipForward'),Square=make('Square'),AlertCircle=make('AlertCircle'),Check=make('Check'),Code2=make('Code2'),Keyboard=make('Keyboard'),Moon=make('Moon'),Search=make('Search'),Settings2=make('Settings2'),ShieldCheck=make('ShieldCheck'),Sun=make('Sun'),X=make('X'),Zap=make('Zap')

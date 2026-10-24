@@ -1,0 +1,17 @@
+{
+  "name": "mimo-python-visual-playground",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "build": "node build.cjs",
+    "test": "node tests/run-tests.cjs"
+  },
+  "dependencies": {
+    "react": "^19.2.1",
+    "react-dom": "^19.2.1"
+  },
+  "devDependencies": {
+    "typescript": "^5.7.2"
+  }
+}
