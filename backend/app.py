@@ -84,6 +84,33 @@ PROVIDER_BASE_URLS = {
     "anthropic": "https://api.anthropic.com/v1",
 }
 
+# Fallback model per provider, used only when the user did not pick one. Never fall
+# back to the server .env model for a *different* provider (that caused OpenRouter to
+# receive an NVIDIA model id and reject it).
+PROVIDER_DEFAULT_MODELS = {
+    "openai": "gpt-4o-mini",
+    "openrouter": "openrouter/free",  # OpenRouter's auto-selected free model
+    "nvidia": "minimaxai/minimax-m3.1-flash",
+    "anthropic": "claude-3-5-haiku-latest",
+}
+
+
+def resolve_model(provider: str, requested: str | None) -> str:
+    requested = (requested or "").strip()
+    if requested:
+        return requested
+    if provider in PROVIDER_DEFAULT_MODELS:
+        return PROVIDER_DEFAULT_MODELS[provider]
+    # server/custom providers fall back to the configured env model
+    return LLM_MODEL
+
+
+class ModelsRequest(BaseModel):
+    provider: str | None = None
+    apiKey: str | None = Field(default=None, max_length=400)
+    baseUrl: str | None = Field(default=None, max_length=400)
+    freeOnly: bool = False
+
 
 @app.get("/api/health")
 async def health() -> dict[str, str]:
@@ -100,7 +127,7 @@ TUTOR_SYSTEM = (
 )
 
 
-def build_tutor_prompt(req: "TutorRequest") -> str:
+def build_tutor_prompt(req: TutorRequest) -> str:
     parts = [f"The learner's full program:\n```python\n{req.code}\n```"]
     event = req.event
     if event:
@@ -205,7 +232,7 @@ async def tutor(request: TutorRequest) -> dict:
         base_url = PROVIDER_BASE_URLS[provider]
     else:
         base_url = LLM_BASE_URL
-    model = (request.model or "").strip() or LLM_MODEL
+    model = resolve_model(provider, request.model)
 
     prompt = build_tutor_prompt(request)
     try:
@@ -224,6 +251,66 @@ async def tutor(request: TutorRequest) -> dict:
         answer = "The model did not return any text. Try asking again or rephrasing the question."
     return {"enabled": True, "answer": answer, "model": model, "provider": provider or "server"}
 
+
+def _is_free(pricing: dict) -> bool:
+    try:
+        return float(pricing.get("prompt", "1") or "1") == 0.0 and float(pricing.get("completion", "1") or "1") == 0.0
+    except (TypeError, ValueError):
+        return False
+
+
+@app.post("/api/tutor/models")
+async def tutor_models(request: ModelsRequest) -> dict:
+    """List selectable chat models for a provider so the UI can offer a dropdown
+    instead of a free-text box. Anthropic has no public list endpoint, so a curated
+    set is returned for it."""
+    provider = (request.provider or "").lower().strip()
+    api_key = (request.apiKey or "").strip() or LLM_API_KEY
+    base_url = (request.baseUrl or "").strip() or PROVIDER_BASE_URLS.get(provider, LLM_BASE_URL)
+
+    if provider == "anthropic":
+        models = [
+            {"id": "claude-3-5-haiku-latest", "name": "Claude 3.5 Haiku (fast, cheap)", "free": False},
+            {"id": "claude-3-5-sonnet-latest", "name": "Claude 3.5 Sonnet", "free": False},
+            {"id": "claude-3-haiku-20240307", "name": "Claude 3 Haiku", "free": False},
+        ]
+        return {"models": models}
+
+    headers = {"Content-Type": "application/json"}
+    # OpenRouter's /models is public; others need the key.
+    if api_key and provider != "openrouter":
+        headers["Authorization"] = f"Bearer {api_key}"
+    if provider == "openrouter" and api_key:
+        headers["Authorization"] = f"Bearer {api_key}"
+
+    try:
+        async with httpx.AsyncClient(timeout=20.0) as client:
+            response = await client.get(f"{base_url.rstrip('/')}/models", headers=headers)
+    except httpx.HTTPError as exc:
+        raise HTTPException(status_code=502, detail=f"Could not fetch models: {exc}") from exc
+    if response.status_code >= 400:
+        raise HTTPException(status_code=502, detail=f"Model list error ({response.status_code}): {response.text[:200]}")
+
+    rows = response.json().get("data", [])
+    models: list[dict] = []
+    for row in rows:
+        mid = row.get("id")
+        if not mid:
+            continue
+        pricing = row.get("pricing") or {}
+        free = _is_free(pricing) or str(mid).endswith(":free")
+        models.append({"id": mid, "name": row.get("name") or mid, "free": free})
+
+    if request.freeOnly:
+        models = [m for m in models if m["free"]]
+    # Free models first, then alphabetical.
+    models.sort(key=lambda m: (not m["free"], m["id"].lower()))
+    # For OpenRouter, surface the auto free router as a convenient first choice.
+    if provider == "openrouter":
+        models.insert(0, {"id": "openrouter/free", "name": "Auto: a free model (OpenRouter picks)", "free": True})
+    return {"models": models}
+
+
 @app.post("/api/trace")
 async def trace(request: TraceRequest) -> dict:
     try:
@@ -238,7 +325,7 @@ async def trace(request: TraceRequest) -> dict:
         stdout, stderr = await asyncio.wait_for(
             process.communicate(json.dumps(request.model_dump()).encode("utf-8")), timeout=5.0
         )
-    except asyncio.TimeoutError:
+    except TimeoutError:
         process.kill()
         await process.wait()
         return {"status": "stopped", "events": [], "structure": {"nodes": [], "edges": []}, "output": "", "error": {"type": "Timeout", "message": "Execution exceeded the 5 second server limit."}, "needsInput": None}

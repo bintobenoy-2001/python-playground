@@ -83,3 +83,42 @@ button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid 
 .provider-chip{background:rgba(186,133,255,0.08);border:1px solid rgba(186,133,255,0.25);color:var(--text);font-size:9px;font-weight:700;padding:5px 9px;border-radius:6px;cursor:pointer}
 .provider-chip:hover{background:rgba(186,133,255,0.2);border-color:var(--purple);color:#fff}
 
+
+/* Header pill buttons (theme + tutor) — distinct from the square icon buttons */
+.header-pill{display:flex;align-items:center;gap:6px;height:33px;padding:0 11px;border:1px solid var(--line);background:var(--panel-2);border-radius:999px;color:var(--text);font-size:10px;font-weight:700;cursor:pointer;position:relative;white-space:nowrap}
+.header-pill:hover{border-color:color-mix(in srgb,var(--blue) 45%,var(--line))}
+.header-pill svg{color:var(--purple)}
+.header-pill.configured{border-color:color-mix(in srgb,var(--green) 45%,var(--line))}
+.header-pill.configured svg{color:var(--green)}
+.pill-dot{width:6px;height:6px;border-radius:50%;background:var(--green);box-shadow:0 0 8px var(--green)}
+
+/* Theme row inside Settings */
+.theme-open-btn{display:flex;align-items:center;gap:7px;border:1px solid var(--line);background:var(--panel-2);color:var(--text);border-radius:8px;padding:8px 11px;font-size:10px;font-weight:700;cursor:pointer}
+.theme-open-btn:hover{border-color:color-mix(in srgb,var(--blue) 45%,var(--line))}
+.theme-chip{width:11px;height:11px;border-radius:50%;display:inline-block}
+
+/* Theme picker modal */
+.theme-modal{width:min(600px,92vw)}
+.theme-group{margin-top:14px}
+.theme-group-label{font-size:8px;letter-spacing:.14em;color:var(--muted);font-weight:800;margin-bottom:8px}
+.theme-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px}
+.theme-card{text-align:left;border:1.5px solid;border-radius:11px;padding:11px;cursor:pointer;transition:transform .12s}
+.theme-card:hover{transform:translateY(-2px)}
+.theme-card.active{box-shadow:0 0 0 2px color-mix(in srgb,var(--blue) 40%,transparent)}
+.theme-preview{display:flex;gap:4px;padding:8px;border:1px solid;border-radius:7px;margin-bottom:9px}
+.theme-preview span{width:16px;height:16px;border-radius:5px;flex:0 0 auto}
+.theme-name{display:flex;align-items:center;justify-content:space-between;font-size:11px;font-weight:700}
+
+.header-button{position:relative}
+.header-button.configured{color:var(--green);border-color:color-mix(in srgb,var(--green) 40%,var(--line))}
+.gear-dot{position:absolute;top:4px;right:4px;width:6px;height:6px}
+
+.model-row{display:flex;gap:6px}
+.model-row select,.model-row input{flex:1;min-width:0}
+.load-models-btn{border:1px solid var(--line);background:var(--panel-2);color:var(--text);border-radius:7px;padding:0 11px;font-size:9px;font-weight:700;cursor:pointer;white-space:nowrap}
+.load-models-btn:hover:not(:disabled){border-color:var(--purple);color:var(--purple)}
+.load-models-btn:disabled{opacity:.5;cursor:default}
+.free-toggle{display:inline-flex;align-items:center;gap:4px;text-transform:none;letter-spacing:0;font-weight:700;color:var(--green);cursor:pointer}
+.free-toggle input{width:12px;height:12px;accent-color:var(--green)}
+.model-hint{display:block;margin-top:5px;font-size:8px;color:var(--muted);line-height:1.4}
+.model-hint.bad{color:var(--red)}

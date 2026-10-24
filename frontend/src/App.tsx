@@ -1,5 +1,5 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
-import { AlertCircle, Check, ChevronRight, Code2, Keyboard, Moon, Play, Search, Settings2, ShieldCheck, Sparkles, Sun, X, Zap } from './icons'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { AlertCircle, Check, ChevronRight, Code2, Palette, Play, Search, Settings2, ShieldCheck, Sparkles, X, Zap } from './icons'
 import { CodePane } from './components/CodePane'
 import { VisualCanvas } from './components/VisualCanvas'
 import { Inspector } from './components/Inspector'
@@ -7,6 +7,7 @@ import { Timeline } from './components/Timeline'
 import { examples, type Example } from './data/examples'
 import type { TraceResult, ViewMode } from './types'
 import { loadTutorConfig, saveTutorConfig, tutorRequestFields, PROVIDER_META, type TutorConfig, type TutorProvider } from './lib/tutorConfig'
+import { THEMES, getTheme, loadThemeId, saveThemeId, applyTheme, type Theme } from './lib/themes'
 import './styles.css'
 
 const EMPTY_RESULT: TraceResult = { status: 'completed', events: [], structure: { nodes: [], edges: [] }, output: '', error: null, needsInput: null }
@@ -24,7 +25,10 @@ function App() {
   const [explanationMode, setExplanationMode] = useState<'beginner' | 'technical'>('beginner')
   const [showExamples, setShowExamples] = useState(false)
   const [showSettings, setShowSettings] = useState(false)
-  const [theme, setTheme] = useState<'dark' | 'light'>('dark')
+  const [showThemes, setShowThemes] = useState(false)
+  const [themeId, setThemeId] = useState<string>(loadThemeId)
+  const activeTheme = getTheme(themeId)
+  const appRef = useRef<HTMLDivElement>(null)
   const [inputs, setInputs] = useState<string[]>([])
   const [pendingInput, setPendingInput] = useState('')
   const [breakpoint, setBreakpoint] = useState<number | null>(null)
@@ -62,13 +66,21 @@ function App() {
     const handler = (event: KeyboardEvent) => {
       if ((event.metaKey || event.ctrlKey) && event.key === 'Enter') { event.preventDefault(); void execute() }
       if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'k') { event.preventDefault(); setShowExamples(true) }
-      if (event.key === 'Escape') { setShowExamples(false); setShowSettings(false) }
+      if (event.key === 'Escape') { setShowExamples(false); setShowSettings(false); setShowThemes(false) }
       if (event.key === 'ArrowRight' && event.altKey && result.events.length) setIndex(i => Math.min(result.events.length - 1, i + 1))
       if (event.key === 'ArrowLeft' && event.altKey && result.events.length) setIndex(i => Math.max(0, i - 1))
     }
     window.addEventListener('keydown', handler)
     return () => window.removeEventListener('keydown', handler)
   }, [execute, result.events.length])
+
+  // Apply the selected theme's CSS variables to the app root and persist it.
+  useEffect(() => {
+    if (appRef.current) applyTheme(appRef.current, activeTheme)
+    saveThemeId(themeId)
+  }, [themeId, activeTheme])
+
+  const chooseTheme = (id: string) => setThemeId(id)
 
   const loadExample = (example: Example) => {
     setCode(example.code); setBaseline(example.code); setResult(EMPTY_RESULT); setInputs([]); setIndex(0)
@@ -81,18 +93,17 @@ function App() {
   }
   const outputToEvent = useMemo(() => event?.output ?? '', [event])
 
-  return <div className={`app ${theme}`}>
+  return <div ref={appRef} className={`app ${activeTheme.vars.colorScheme}`}>
     <header className="topbar">
       <div className="brand"><div className="brand-mark"><Code2 size={20}/><span/></div><div><strong>MIMO</strong><span>PYTHON VISUAL PLAYGROUND</span></div></div>
       <div className="tagline"><Sparkles size={14}/><span>See how Python thinks.</span></div>
       <div className="top-actions">
         <div className="safety-pill"><ShieldCheck size={14}/><span>Restricted execution</span></div>
-        <button className="header-button" title="Keyboard shortcuts"><Keyboard size={16}/></button>
-        <button className="header-button" onClick={() => setTheme(t => t === 'dark' ? 'light' : 'dark')} title="Toggle theme">{theme === 'dark' ? <Sun size={16}/> : <Moon size={16}/>}</button>
-        <button className={`header-button tutor-pill-btn ${tutorConfig.apiKey ? 'configured' : ''}`} onClick={() => setShowSettings(true)} title="AI Tutor & API Key Settings">
-          <Sparkles size={14}/><span>{tutorConfig.apiKey ? `${tutorConfig.provider.toUpperCase()} Key` : 'AI Tutor Key'}</span>
+        <button className="header-pill" onClick={() => setShowThemes(true)} title="Choose a theme"><Palette size={15}/><span>{activeTheme.name}</span></button>
+        <button className={`header-button ${tutorConfig.apiKey ? 'configured' : ''}`} onClick={() => setShowSettings(true)} title="Settings">
+          <Settings2 size={16}/>
+          {tutorConfig.apiKey && <i className="pill-dot gear-dot"/>}
         </button>
-        <button className="header-button" onClick={() => setShowSettings(true)} title="Settings"><Settings2 size={16}/></button>
         <button className="run-button" onClick={() => void execute()} disabled={loading || !code.trim()}>{loading ? <span className="spinner"/> : <Play size={16} fill="currentColor"/>}<span>{loading ? 'Tracing…' : 'Run & visualise'}</span><kbd>⌘↵</kbd></button>
       </div>
     </header>
@@ -120,8 +131,9 @@ function App() {
     <Timeline events={stale ? [] : result.events} index={index} playing={playing} speed={speed} breakpoint={breakpoint} onIndex={setIndex} onPlay={() => setPlaying(p => !p)} onStop={() => setPlaying(false)} onRestart={() => { setIndex(0); setPlaying(false) }} onSpeed={setSpeed} onBreakpoint={setBreakpoint}/>
 
     {showExamples && <ExampleLibrary onClose={() => setShowExamples(false)} onSelect={loadExample}/>} 
-    {showSettings && <SettingsModal onClose={() => setShowSettings(false)} mode={explanationMode} onMode={setExplanationMode} speed={speed} onSpeed={setSpeed} tutorConfig={tutorConfig} onTutorConfig={next => { setTutorConfig(next); saveTutorConfig(next) }}/>} 
-    {result.needsInput && <div className="modal-backdrop input-backdrop"><div className="input-modal"><div className="input-icon"><Zap size={22}/></div><span>PROGRAM PAUSED</span><h2>Python is waiting for input</h2><p>{result.needsInput.prompt || 'Enter a value to continue.'}</p><input autoFocus value={pendingInput} onChange={event => setPendingInput(event.target.value)} onKeyDown={event => event.key === 'Enter' && submitInput()} placeholder="Type a value…"/><div><button className="secondary" onClick={() => setResult(r => ({...r, needsInput: null, status: 'stopped'}))}>Stop</button><button className="primary" onClick={submitInput}>Send to Python <ChevronRight size={15}/></button></div><small>input() always returns text. Convert it with int() or float() when needed.</small></div></div>}
+    {showThemes && <ThemePicker current={themeId} onChoose={chooseTheme} onClose={() => setShowThemes(false)}/>} 
+    {showSettings && <SettingsModal onClose={() => setShowSettings(false)} mode={explanationMode} onMode={setExplanationMode} speed={speed} onSpeed={setSpeed} tutorConfig={tutorConfig} onTutorConfig={next => { setTutorConfig(next); saveTutorConfig(next) }} themeId={themeId} onThemeId={chooseTheme} onOpenThemes={() => { setShowSettings(false); setShowThemes(true) }}/>} 
+    {result.needsInput && <div className="modal-backdrop input-backdrop"><div className="input-modal"><div className="input-icon"><Zap size={22}/></div><span>PROGRAM PAUSED</span><h2>Python is waiting for input</h2><p>{result.needsInput.prompt || 'Enter a value to continue.'}</p><input autoFocus value={pendingInput} onChange={(event: React.ChangeEvent<HTMLInputElement>) => setPendingInput(event.target.value)} onKeyDown={(event: React.KeyboardEvent<HTMLInputElement>) => event.key === 'Enter' && submitInput()} placeholder="Type a value…"/><div><button className="secondary" onClick={() => setResult(r => ({...r, needsInput: null, status: 'stopped'}))}>Stop</button><button className="primary" onClick={submitInput}>Send to Python <ChevronRight size={15}/></button></div><small>input() always returns text. Convert it with int() or float() when needed.</small></div></div>}
   </div>
 }
 
@@ -129,15 +141,40 @@ function ExampleLibrary({ onClose, onSelect }: { onClose: () => void; onSelect: 
   const [query, setQuery] = useState('')
   const [level, setLevel] = useState<string>('All')
   const filtered = examples.filter(example => (level === 'All' || example.level === level) && `${example.title} ${example.concept}`.toLowerCase().includes(query.toLowerCase()))
-  return <div className="drawer-backdrop" onMouseDown={event => event.target === event.currentTarget && onClose()}><aside className="example-drawer">
+  return <div className="drawer-backdrop" onMouseDown={(event: React.MouseEvent) => event.target === event.currentTarget && onClose()}><aside className="example-drawer">
     <div className="drawer-head"><div><span>LEARNING LIBRARY</span><h2>Start with a story</h2><p>Each example is ready to run and recommends the view that explains it best.</p></div><button onClick={onClose}><X size={18}/></button></div>
     <div className="library-tools"><label><Search size={16}/><input autoFocus value={query} onChange={e => setQuery(e.target.value)} placeholder="Search concepts…"/></label><div>{['All', 'Beginner', 'Intermediate', 'AI Foundation'].map(item => <button className={level === item ? 'active' : ''} onClick={() => setLevel(item)} key={item}>{item}</button>)}</div></div>
     <div className="example-grid">{filtered.map(example => <button className="example-card" onClick={() => onSelect(example)} key={example.id}><div><span className={`level ${example.level.replace(' ', '-').toLowerCase()}`}>{example.level}</span><small>{example.concept}</small></div><h3>{example.title}</h3><p>{example.objective}</p><div><code>{example.expected}</code><span>Open <ChevronRight size={14}/></span></div></button>)}</div>
   </aside></div>
 }
 
-function SettingsModal({ onClose, mode, onMode, speed, onSpeed, tutorConfig, onTutorConfig }: { onClose: () => void; mode: 'beginner' | 'technical'; onMode: (m: 'beginner' | 'technical') => void; speed: number; onSpeed: (n: number) => void; tutorConfig: TutorConfig; onTutorConfig: (c: TutorConfig) => void }) {
-  return <div className="modal-backdrop" onMouseDown={event => event.target === event.currentTarget && onClose()}><div className="settings-modal"><div className="settings-head"><div><span>PLAYGROUND SETTINGS</span><h2>Shape your learning view</h2></div><button onClick={onClose}><X size={18}/></button></div>
+function ThemePicker({ current, onChoose, onClose }: { current: string; onChoose: (id: string) => void; onClose: () => void }) {
+  const groups: Array<'Dark' | 'Light'> = ['Dark', 'Light']
+  return <div className="modal-backdrop" onMouseDown={(event: React.MouseEvent) => event.target === event.currentTarget && onClose()}>
+    <div className="settings-modal theme-modal">
+      <div className="settings-head"><div><span>APPEARANCE</span><h2>Choose a theme</h2></div><button onClick={onClose}><X size={18}/></button></div>
+      {groups.map(group => <div key={group} className="theme-group">
+        <div className="theme-group-label">{group}</div>
+        <div className="theme-grid">
+          {THEMES.filter(t => t.group === group).map(t => {
+            const v = t.vars
+            return <button key={t.id} className={`theme-card ${current === t.id ? 'active' : ''}`} onClick={() => onChoose(t.id)} style={{ background: v.bg, borderColor: current === t.id ? v.blue : v.line }}>
+              <div className="theme-preview" style={{ background: v.panel2, borderColor: v.line }}>
+                <span style={{ background: v.blue }}/><span style={{ background: v.green }}/><span style={{ background: v.purple }}/><span style={{ background: v.amber }}/><span style={{ background: v.red }}/>
+              </div>
+              <div className="theme-name" style={{ color: v.text }}>{t.name}{current === t.id && <Check size={13}/>}</div>
+            </button>
+          })}
+        </div>
+      </div>)}
+    </div>
+  </div>
+}
+
+function SettingsModal({ onClose, mode, onMode, speed, onSpeed, tutorConfig, onTutorConfig, themeId, onOpenThemes }: { onClose: () => void; mode: 'beginner' | 'technical'; onMode: (m: 'beginner' | 'technical') => void; speed: number; onSpeed: (n: number) => void; tutorConfig: TutorConfig; onTutorConfig: (c: TutorConfig) => void; themeId: string; onThemeId: (id: string) => void; onOpenThemes: () => void }) {
+  const theme = getTheme(themeId)
+  return <div className="modal-backdrop" onMouseDown={(event: React.MouseEvent) => event.target === event.currentTarget && onClose()}><div className="settings-modal"><div className="settings-head"><div><span>PLAYGROUND SETTINGS</span><h2>Shape your learning view</h2></div><button onClick={onClose}><X size={18}/></button></div>
+    <div className="setting-row"><div><strong>Theme</strong><p>Pick a colour scheme. Your choice is saved in this browser.</p></div><button className="theme-open-btn" onClick={onOpenThemes}><span className="theme-chip" style={{ background: theme.vars.blue }}/><span className="theme-chip" style={{ background: theme.vars.purple }}/><span className="theme-chip" style={{ background: theme.vars.green }}/>{theme.name}<ChevronRight size={14}/></button></div>
     <div className="setting-row"><div><strong>Explanation language</strong><p>Switch without losing your current execution position.</p></div><div className="segmented"><button className={mode === 'beginner' ? 'active' : ''} onClick={() => onMode('beginner')}>Beginner</button><button className={mode === 'technical' ? 'active' : ''} onClick={() => onMode('technical')}>Technical</button></div></div>
     <div className="setting-row"><div><strong>Playback speed</strong><p>Animations remain interruptible at every speed.</p></div><select value={speed} onChange={e => onSpeed(Number(e.target.value))}><option value={1400}>Calm · 0.5×</option><option value={850}>Normal · 1×</option><option value={450}>Quick · 2×</option><option value={220}>Scan · 4×</option></select></div>
     <TutorSettings config={tutorConfig} onChange={onTutorConfig}/>
@@ -150,10 +187,33 @@ function TutorSettings({ config, onChange }: { config: TutorConfig; onChange: (c
   const [showKey, setShowKey] = useState(false)
   const [testing, setTesting] = useState(false)
   const [testResult, setTestResult] = useState<{ ok: boolean; text: string } | null>(null)
-  const providers: TutorProvider[] = ['server', 'openai', 'anthropic', 'openrouter', 'nvidia', 'custom']
+  const [models, setModels] = useState<Array<{ id: string; name: string; free: boolean }>>([])
+  const [loadingModels, setLoadingModels] = useState(false)
+  const [modelsError, setModelsError] = useState('')
+  const [freeOnly, setFreeOnly] = useState(true)
   const meta = config.provider !== 'server' ? PROVIDER_META[config.provider] : undefined
 
   const update = (patch: Partial<TutorConfig>) => { setTestResult(null); onChange({ ...config, ...patch }) }
+
+  // Reset the loaded list whenever the provider or key changes so stale models
+  // from another provider are never shown.
+  useEffect(() => { setModels([]); setModelsError('') }, [config.provider, config.apiKey])
+
+  const loadModels = async () => {
+    setLoadingModels(true); setModelsError(''); setModels([])
+    try {
+      const response = await fetch('/api/tutor/models', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ provider: config.provider, apiKey: config.apiKey.trim() || undefined, baseUrl: config.provider === 'custom' ? config.baseUrl.trim() || undefined : undefined, freeOnly: config.provider === 'openrouter' ? freeOnly : false }),
+      })
+      const data = await response.json().catch(() => ({}))
+      if (!response.ok) throw new Error(data.detail || 'Could not load models.')
+      setModels(data.models || [])
+      if (!data.models?.length) setModelsError('No models returned for this provider/key.')
+    } catch (err) {
+      setModelsError(err instanceof Error ? err.message : 'Could not load models.')
+    } finally { setLoadingModels(false) }
+  }
 
   const test = async () => {
     setTesting(true); setTestResult(null)
@@ -201,18 +261,31 @@ function TutorSettings({ config, onChange }: { config: TutorConfig; onChange: (c
         <label className="tcfg">
           <span>API key {meta?.keyUrl && <a href={meta.keyUrl} target="_blank" rel="noopener noreferrer">{meta.keyUrlLabel} ↗</a>}</span>
           <div className="key-input">
-            <input type={showKey ? 'text' : 'password'} value={config.apiKey} onChange={e => update({ apiKey: e.target.value })} placeholder={meta?.keyPlaceholder} autoComplete="off" spellCheck={false}/>
+            <input type={showKey ? 'text' : 'password'} value={config.apiKey} onChange={(e: React.ChangeEvent<HTMLInputElement>) => update({ apiKey: e.target.value })} placeholder={meta?.keyPlaceholder} autoComplete="off" spellCheck={false}/>
             <button type="button" onClick={() => setShowKey(s => !s)}>{showKey ? 'Hide' : 'Show'}</button>
           </div>
-        </label>
-        <label className="tcfg">
-          <span>Model</span>
-          <input value={config.model} onChange={e => update({ model: e.target.value })} placeholder={meta?.modelPlaceholder} autoComplete="off" spellCheck={false}/>
         </label>
         {config.provider === 'custom' && <label className="tcfg">
           <span>Base URL</span>
           <input value={config.baseUrl} onChange={e => update({ baseUrl: e.target.value })} placeholder="https://host/v1" autoComplete="off" spellCheck={false}/>
         </label>}
+        <label className="tcfg">
+          <span>Model
+            {config.provider === 'openrouter' && <label className="free-toggle"><input type="checkbox" checked={freeOnly} onChange={e => setFreeOnly(e.target.checked)}/> Free only</label>}
+          </span>
+          <div className="model-row">
+            {models.length > 0
+              ? <select value={config.model} onChange={e => update({ model: e.target.value })}>
+                  <option value="">Default ({meta?.defaultModel})</option>
+                  {models.map(m => <option key={m.id} value={m.id}>{m.free ? '🆓 ' : ''}{m.name}</option>)}
+                </select>
+              : <input value={config.model} onChange={e => update({ model: e.target.value })} placeholder={meta?.modelPlaceholder} autoComplete="off" spellCheck={false}/>}
+            <button type="button" className="load-models-btn" onClick={loadModels} disabled={loadingModels}>{loadingModels ? 'Loading…' : (models.length ? 'Reload' : 'Load models')}</button>
+          </div>
+          {modelsError && <small className="model-hint bad">{modelsError}</small>}
+          {!modelsError && models.length > 0 && <small className="model-hint">{models.length} models available · pick one from the list</small>}
+          {!modelsError && models.length === 0 && <small className="model-hint">Leave blank for the provider default, or load the list to choose.</small>}
+        </label>
       </>}
     </div>
     <div className="tutor-config-actions">

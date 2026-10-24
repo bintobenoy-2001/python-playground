@@ -23,6 +23,7 @@ export const DEFAULT_TUTOR_CONFIG: TutorConfig = {
 export const PROVIDER_META: Record<Exclude<TutorProvider, 'server'>, {
   label: string
   modelPlaceholder: string
+  defaultModel: string  // what a blank Model field resolves to on the backend
   keyPlaceholder: string
   keyUrl?: string
   keyUrlLabel?: string
@@ -30,6 +31,7 @@ export const PROVIDER_META: Record<Exclude<TutorProvider, 'server'>, {
   openai: {
     label: 'OpenAI',
     modelPlaceholder: 'gpt-4o-mini',
+    defaultModel: 'gpt-4o-mini',
     keyPlaceholder: 'sk-...',
     keyUrl: 'https://platform.openai.com/api-keys',
     keyUrlLabel: 'Get an OpenAI key',
@@ -37,13 +39,15 @@ export const PROVIDER_META: Record<Exclude<TutorProvider, 'server'>, {
   anthropic: {
     label: 'Anthropic (Claude)',
     modelPlaceholder: 'claude-3-5-haiku-latest',
+    defaultModel: 'claude-3-5-haiku-latest',
     keyPlaceholder: 'sk-ant-...',
     keyUrl: 'https://console.anthropic.com/settings/keys',
     keyUrlLabel: 'Get an Anthropic key',
   },
   openrouter: {
     label: 'OpenRouter',
-    modelPlaceholder: 'openai/gpt-4o-mini',
+    modelPlaceholder: 'openrouter/free',
+    defaultModel: 'openrouter/free',
     keyPlaceholder: 'sk-or-...',
     keyUrl: 'https://openrouter.ai/keys',
     keyUrlLabel: 'Get an OpenRouter key',
@@ -51,6 +55,7 @@ export const PROVIDER_META: Record<Exclude<TutorProvider, 'server'>, {
   nvidia: {
     label: 'NVIDIA NIM',
     modelPlaceholder: 'minimaxai/minimax-m3.1-flash',
+    defaultModel: 'minimaxai/minimax-m3.1-flash',
     keyPlaceholder: 'nvapi-...',
     keyUrl: 'https://build.nvidia.com/settings/api-keys',
     keyUrlLabel: 'Get an NVIDIA key',
@@ -58,6 +63,7 @@ export const PROVIDER_META: Record<Exclude<TutorProvider, 'server'>, {
   custom: {
     label: 'Custom (OpenAI-compatible)',
     modelPlaceholder: 'model-name',
+    defaultModel: 'model-name',
     keyPlaceholder: 'your-api-key',
   },
 }

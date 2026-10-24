@@ -53758,6 +53758,7 @@ const Inspector_1 = require("app/components/Inspector.js");
 const Timeline_1 = require("app/components/Timeline.js");
 const examples_1 = require("app/data/examples.js");
 const tutorConfig_1 = require("app/lib/tutorConfig.js");
+const themes_1 = require("app/lib/themes.js");
 {};
 const EMPTY_RESULT = { status: 'completed', events: [], structure: { nodes: [], edges: [] }, output: '', error: null, needsInput: null };
 const DEFAULT_EXAMPLE = examples_1.examples.find(example => example.id === 'loop');
@@ -53773,7 +53774,10 @@ function App() {
     const [explanationMode, setExplanationMode] = (0, react_1.useState)('beginner');
     const [showExamples, setShowExamples] = (0, react_1.useState)(false);
     const [showSettings, setShowSettings] = (0, react_1.useState)(false);
-    const [theme, setTheme] = (0, react_1.useState)('dark');
+    const [showThemes, setShowThemes] = (0, react_1.useState)(false);
+    const [themeId, setThemeId] = (0, react_1.useState)(themes_1.loadThemeId);
+    const activeTheme = (0, themes_1.getTheme)(themeId);
+    const appRef = (0, react_1.useRef)(null);
     const [inputs, setInputs] = (0, react_1.useState)([]);
     const [pendingInput, setPendingInput] = (0, react_1.useState)('');
     const [breakpoint, setBreakpoint] = (0, react_1.useState)(null);
@@ -53831,6 +53835,7 @@ function App() {
             if (event.key === 'Escape') {
                 setShowExamples(false);
                 setShowSettings(false);
+                setShowThemes(false);
             }
             if (event.key === 'ArrowRight' && event.altKey && result.events.length)
                 setIndex(i => Math.min(result.events.length - 1, i + 1));
@@ -53840,6 +53845,13 @@ function App() {
         window.addEventListener('keydown', handler);
         return () => window.removeEventListener('keydown', handler);
     }, [execute, result.events.length]);
+    // Apply the selected theme's CSS variables to the app root and persist it.
+    (0, react_1.useEffect)(() => {
+        if (appRef.current)
+            (0, themes_1.applyTheme)(appRef.current, activeTheme);
+        (0, themes_1.saveThemeId)(themeId);
+    }, [themeId, activeTheme]);
+    const chooseTheme = (id) => setThemeId(id);
     const loadExample = (example) => {
         setCode(example.code);
         setBaseline(example.code);
@@ -53858,24 +53870,61 @@ function App() {
         void execute(nextInputs);
     };
     const outputToEvent = (0, react_1.useMemo)(() => event?.output ?? '', [event]);
-    return (0, jsx_runtime_1.jsxs)("div", { className: `app ${theme}`, children: [(0, jsx_runtime_1.jsxs)("header", { className: "topbar", children: [(0, jsx_runtime_1.jsxs)("div", { className: "brand", children: [(0, jsx_runtime_1.jsxs)("div", { className: "brand-mark", children: [(0, jsx_runtime_1.jsx)(icons_1.Code2, { size: 20 }), (0, jsx_runtime_1.jsx)("span", {})] }), (0, jsx_runtime_1.jsxs)("div", { children: [(0, jsx_runtime_1.jsx)("strong", { children: "MIMO" }), (0, jsx_runtime_1.jsx)("span", { children: "PYTHON VISUAL PLAYGROUND" })] })] }), (0, jsx_runtime_1.jsxs)("div", { className: "tagline", children: [(0, jsx_runtime_1.jsx)(icons_1.Sparkles, { size: 14 }), (0, jsx_runtime_1.jsx)("span", { children: "See how Python thinks." })] }), (0, jsx_runtime_1.jsxs)("div", { className: "top-actions", children: [(0, jsx_runtime_1.jsxs)("div", { className: "safety-pill", children: [(0, jsx_runtime_1.jsx)(icons_1.ShieldCheck, { size: 14 }), (0, jsx_runtime_1.jsx)("span", { children: "Restricted execution" })] }), (0, jsx_runtime_1.jsx)("button", { className: "header-button", title: "Keyboard shortcuts", children: (0, jsx_runtime_1.jsx)(icons_1.Keyboard, { size: 16 }) }), (0, jsx_runtime_1.jsx)("button", { className: "header-button", onClick: () => setTheme(t => t === 'dark' ? 'light' : 'dark'), title: "Toggle theme", children: theme === 'dark' ? (0, jsx_runtime_1.jsx)(icons_1.Sun, { size: 16 }) : (0, jsx_runtime_1.jsx)(icons_1.Moon, { size: 16 }) }), (0, jsx_runtime_1.jsxs)("button", { className: `header-button tutor-pill-btn ${tutorConfig.apiKey ? 'configured' : ''}`, onClick: () => setShowSettings(true), title: "AI Tutor & API Key Settings", children: [(0, jsx_runtime_1.jsx)(icons_1.Sparkles, { size: 14 }), (0, jsx_runtime_1.jsx)("span", { children: tutorConfig.apiKey ? `${tutorConfig.provider.toUpperCase()} Key` : 'AI Tutor Key' })] }), (0, jsx_runtime_1.jsx)("button", { className: "header-button", onClick: () => setShowSettings(true), title: "Settings", children: (0, jsx_runtime_1.jsx)(icons_1.Settings2, { size: 16 }) }), (0, jsx_runtime_1.jsxs)("button", { className: "run-button", onClick: () => void execute(), disabled: loading || !code.trim(), children: [loading ? (0, jsx_runtime_1.jsx)("span", { className: "spinner" }) : (0, jsx_runtime_1.jsx)(icons_1.Play, { size: 16, fill: "currentColor" }), (0, jsx_runtime_1.jsx)("span", { children: loading ? 'Tracing…' : 'Run & visualise' }), (0, jsx_runtime_1.jsx)("kbd", { children: "\u2318\u21B5" })] })] })] }), (0, jsx_runtime_1.jsxs)("nav", { className: "mobile-tabs", children: [(0, jsx_runtime_1.jsx)("button", { className: mobileTab === 'code' ? 'active' : '', onClick: () => setMobileTab('code'), children: "Code" }), (0, jsx_runtime_1.jsx)("button", { className: mobileTab === 'visual' ? 'active' : '', onClick: () => setMobileTab('visual'), children: "Visualise" }), (0, jsx_runtime_1.jsx)("button", { className: mobileTab === 'state' ? 'active' : '', onClick: () => setMobileTab('state'), children: "State" })] }), (0, jsx_runtime_1.jsxs)("main", { className: "workspace", children: [(0, jsx_runtime_1.jsxs)("div", { className: `workspace-pane left-pane ${mobileTab === 'code' ? 'mobile-active' : ''}`, children: [(0, jsx_runtime_1.jsx)(CodePane_1.CodePane, { code: code, onChange: setCode, currentLine: !stale ? event?.line : undefined, errorLine: result.error?.line, onExamples: () => setShowExamples(true), onReset: reset }), (0, jsx_runtime_1.jsxs)("section", { className: "console-panel panel", children: [(0, jsx_runtime_1.jsxs)("div", { className: "console-head", children: [(0, jsx_runtime_1.jsxs)("div", { children: [(0, jsx_runtime_1.jsx)("span", { className: "console-dot red" }), (0, jsx_runtime_1.jsx)("span", { className: "console-dot amber" }), (0, jsx_runtime_1.jsx)("span", { className: "console-dot green" }), (0, jsx_runtime_1.jsx)("strong", { children: "OUTPUT" })] }), (0, jsx_runtime_1.jsxs)("span", { children: [outputToEvent.length, " chars"] })] }), (0, jsx_runtime_1.jsx)("pre", { children: outputToEvent || (0, jsx_runtime_1.jsx)("span", { className: "console-placeholder", children: "Program output will appear here\u2026" }) })] })] }), (0, jsx_runtime_1.jsxs)("div", { className: `workspace-pane center-pane ${mobileTab === 'visual' ? 'mobile-active' : ''}`, children: [stale && (0, jsx_runtime_1.jsxs)("div", { className: "stale-banner", children: [(0, jsx_runtime_1.jsx)(icons_1.AlertCircle, { size: 16 }), (0, jsx_runtime_1.jsx)("span", { children: "Your code changed. Run it again to create an updated visualisation." }), (0, jsx_runtime_1.jsxs)("button", { onClick: () => void execute(), children: ["Run now ", (0, jsx_runtime_1.jsx)(icons_1.ChevronRight, { size: 14 })] })] }), result.error && (0, jsx_runtime_1.jsxs)("div", { className: `error-banner ${result.status}`, children: [(0, jsx_runtime_1.jsx)(icons_1.AlertCircle, { size: 17 }), (0, jsx_runtime_1.jsxs)("div", { children: [(0, jsx_runtime_1.jsx)("strong", { children: result.error.type }), (0, jsx_runtime_1.jsx)("span", { children: result.error.message }), result.error.hint && (0, jsx_runtime_1.jsxs)("em", { className: "error-hint", children: ["\uD83D\uDCA1 ", result.error.hint] })] }), result.error.line && (0, jsx_runtime_1.jsxs)("b", { children: ["Line ", result.error.line] })] }), (0, jsx_runtime_1.jsx)(VisualCanvas_1.VisualCanvas, { result: stale ? EMPTY_RESULT : result, event: stale ? undefined : event, index: index, mode: mode, onMode: setMode })] }), (0, jsx_runtime_1.jsx)("div", { className: `workspace-pane right-pane ${mobileTab === 'state' ? 'mobile-active' : ''}`, children: (0, jsx_runtime_1.jsx)(Inspector_1.Inspector, { event: stale ? undefined : event, previous: stale ? undefined : previous, explanationMode: explanationMode, onExplanationMode: setExplanationMode, code: code, error: result.error, tutorConfig: tutorConfig, onOpenSettings: () => setShowSettings(true) }) })] }), (0, jsx_runtime_1.jsx)(Timeline_1.Timeline, { events: stale ? [] : result.events, index: index, playing: playing, speed: speed, breakpoint: breakpoint, onIndex: setIndex, onPlay: () => setPlaying(p => !p), onStop: () => setPlaying(false), onRestart: () => { setIndex(0); setPlaying(false); }, onSpeed: setSpeed, onBreakpoint: setBreakpoint }), showExamples && (0, jsx_runtime_1.jsx)(ExampleLibrary, { onClose: () => setShowExamples(false), onSelect: loadExample }), showSettings && (0, jsx_runtime_1.jsx)(SettingsModal, { onClose: () => setShowSettings(false), mode: explanationMode, onMode: setExplanationMode, speed: speed, onSpeed: setSpeed, tutorConfig: tutorConfig, onTutorConfig: next => { setTutorConfig(next); (0, tutorConfig_1.saveTutorConfig)(next); } }), result.needsInput && (0, jsx_runtime_1.jsx)("div", { className: "modal-backdrop input-backdrop", children: (0, jsx_runtime_1.jsxs)("div", { className: "input-modal", children: [(0, jsx_runtime_1.jsx)("div", { className: "input-icon", children: (0, jsx_runtime_1.jsx)(icons_1.Zap, { size: 22 }) }), (0, jsx_runtime_1.jsx)("span", { children: "PROGRAM PAUSED" }), (0, jsx_runtime_1.jsx)("h2", { children: "Python is waiting for input" }), (0, jsx_runtime_1.jsx)("p", { children: result.needsInput.prompt || 'Enter a value to continue.' }), (0, jsx_runtime_1.jsx)("input", { autoFocus: true, value: pendingInput, onChange: event => setPendingInput(event.target.value), onKeyDown: event => event.key === 'Enter' && submitInput(), placeholder: "Type a value\u2026" }), (0, jsx_runtime_1.jsxs)("div", { children: [(0, jsx_runtime_1.jsx)("button", { className: "secondary", onClick: () => setResult(r => ({ ...r, needsInput: null, status: 'stopped' })), children: "Stop" }), (0, jsx_runtime_1.jsxs)("button", { className: "primary", onClick: submitInput, children: ["Send to Python ", (0, jsx_runtime_1.jsx)(icons_1.ChevronRight, { size: 15 })] })] }), (0, jsx_runtime_1.jsx)("small", { children: "input() always returns text. Convert it with int() or float() when needed." })] }) })] });
+    return (0, jsx_runtime_1.jsxs)("div", { ref: appRef, className: `app ${activeTheme.vars.colorScheme}`, children: [(0, jsx_runtime_1.jsxs)("header", { className: "topbar", children: [(0, jsx_runtime_1.jsxs)("div", { className: "brand", children: [(0, jsx_runtime_1.jsxs)("div", { className: "brand-mark", children: [(0, jsx_runtime_1.jsx)(icons_1.Code2, { size: 20 }), (0, jsx_runtime_1.jsx)("span", {})] }), (0, jsx_runtime_1.jsxs)("div", { children: [(0, jsx_runtime_1.jsx)("strong", { children: "MIMO" }), (0, jsx_runtime_1.jsx)("span", { children: "PYTHON VISUAL PLAYGROUND" })] })] }), (0, jsx_runtime_1.jsxs)("div", { className: "tagline", children: [(0, jsx_runtime_1.jsx)(icons_1.Sparkles, { size: 14 }), (0, jsx_runtime_1.jsx)("span", { children: "See how Python thinks." })] }), (0, jsx_runtime_1.jsxs)("div", { className: "top-actions", children: [(0, jsx_runtime_1.jsxs)("div", { className: "safety-pill", children: [(0, jsx_runtime_1.jsx)(icons_1.ShieldCheck, { size: 14 }), (0, jsx_runtime_1.jsx)("span", { children: "Restricted execution" })] }), (0, jsx_runtime_1.jsxs)("button", { className: "header-pill", onClick: () => setShowThemes(true), title: "Choose a theme", children: [(0, jsx_runtime_1.jsx)(icons_1.Palette, { size: 15 }), (0, jsx_runtime_1.jsx)("span", { children: activeTheme.name })] }), (0, jsx_runtime_1.jsxs)("button", { className: `header-button ${tutorConfig.apiKey ? 'configured' : ''}`, onClick: () => setShowSettings(true), title: "Settings", children: [(0, jsx_runtime_1.jsx)(icons_1.Settings2, { size: 16 }), tutorConfig.apiKey && (0, jsx_runtime_1.jsx)("i", { className: "pill-dot gear-dot" })] }), (0, jsx_runtime_1.jsxs)("button", { className: "run-button", onClick: () => void execute(), disabled: loading || !code.trim(), children: [loading ? (0, jsx_runtime_1.jsx)("span", { className: "spinner" }) : (0, jsx_runtime_1.jsx)(icons_1.Play, { size: 16, fill: "currentColor" }), (0, jsx_runtime_1.jsx)("span", { children: loading ? 'Tracing…' : 'Run & visualise' }), (0, jsx_runtime_1.jsx)("kbd", { children: "\u2318\u21B5" })] })] })] }), (0, jsx_runtime_1.jsxs)("nav", { className: "mobile-tabs", children: [(0, jsx_runtime_1.jsx)("button", { className: mobileTab === 'code' ? 'active' : '', onClick: () => setMobileTab('code'), children: "Code" }), (0, jsx_runtime_1.jsx)("button", { className: mobileTab === 'visual' ? 'active' : '', onClick: () => setMobileTab('visual'), children: "Visualise" }), (0, jsx_runtime_1.jsx)("button", { className: mobileTab === 'state' ? 'active' : '', onClick: () => setMobileTab('state'), children: "State" })] }), (0, jsx_runtime_1.jsxs)("main", { className: "workspace", children: [(0, jsx_runtime_1.jsxs)("div", { className: `workspace-pane left-pane ${mobileTab === 'code' ? 'mobile-active' : ''}`, children: [(0, jsx_runtime_1.jsx)(CodePane_1.CodePane, { code: code, onChange: setCode, currentLine: !stale ? event?.line : undefined, errorLine: result.error?.line, onExamples: () => setShowExamples(true), onReset: reset }), (0, jsx_runtime_1.jsxs)("section", { className: "console-panel panel", children: [(0, jsx_runtime_1.jsxs)("div", { className: "console-head", children: [(0, jsx_runtime_1.jsxs)("div", { children: [(0, jsx_runtime_1.jsx)("span", { className: "console-dot red" }), (0, jsx_runtime_1.jsx)("span", { className: "console-dot amber" }), (0, jsx_runtime_1.jsx)("span", { className: "console-dot green" }), (0, jsx_runtime_1.jsx)("strong", { children: "OUTPUT" })] }), (0, jsx_runtime_1.jsxs)("span", { children: [outputToEvent.length, " chars"] })] }), (0, jsx_runtime_1.jsx)("pre", { children: outputToEvent || (0, jsx_runtime_1.jsx)("span", { className: "console-placeholder", children: "Program output will appear here\u2026" }) })] })] }), (0, jsx_runtime_1.jsxs)("div", { className: `workspace-pane center-pane ${mobileTab === 'visual' ? 'mobile-active' : ''}`, children: [stale && (0, jsx_runtime_1.jsxs)("div", { className: "stale-banner", children: [(0, jsx_runtime_1.jsx)(icons_1.AlertCircle, { size: 16 }), (0, jsx_runtime_1.jsx)("span", { children: "Your code changed. Run it again to create an updated visualisation." }), (0, jsx_runtime_1.jsxs)("button", { onClick: () => void execute(), children: ["Run now ", (0, jsx_runtime_1.jsx)(icons_1.ChevronRight, { size: 14 })] })] }), result.error && (0, jsx_runtime_1.jsxs)("div", { className: `error-banner ${result.status}`, children: [(0, jsx_runtime_1.jsx)(icons_1.AlertCircle, { size: 17 }), (0, jsx_runtime_1.jsxs)("div", { children: [(0, jsx_runtime_1.jsx)("strong", { children: result.error.type }), (0, jsx_runtime_1.jsx)("span", { children: result.error.message }), result.error.hint && (0, jsx_runtime_1.jsxs)("em", { className: "error-hint", children: ["\uD83D\uDCA1 ", result.error.hint] })] }), result.error.line && (0, jsx_runtime_1.jsxs)("b", { children: ["Line ", result.error.line] })] }), (0, jsx_runtime_1.jsx)(VisualCanvas_1.VisualCanvas, { result: stale ? EMPTY_RESULT : result, event: stale ? undefined : event, index: index, mode: mode, onMode: setMode })] }), (0, jsx_runtime_1.jsx)("div", { className: `workspace-pane right-pane ${mobileTab === 'state' ? 'mobile-active' : ''}`, children: (0, jsx_runtime_1.jsx)(Inspector_1.Inspector, { event: stale ? undefined : event, previous: stale ? undefined : previous, explanationMode: explanationMode, onExplanationMode: setExplanationMode, code: code, error: result.error, tutorConfig: tutorConfig, onOpenSettings: () => setShowSettings(true) }) })] }), (0, jsx_runtime_1.jsx)(Timeline_1.Timeline, { events: stale ? [] : result.events, index: index, playing: playing, speed: speed, breakpoint: breakpoint, onIndex: setIndex, onPlay: () => setPlaying(p => !p), onStop: () => setPlaying(false), onRestart: () => { setIndex(0); setPlaying(false); }, onSpeed: setSpeed, onBreakpoint: setBreakpoint }), showExamples && (0, jsx_runtime_1.jsx)(ExampleLibrary, { onClose: () => setShowExamples(false), onSelect: loadExample }), showThemes && (0, jsx_runtime_1.jsx)(ThemePicker, { current: themeId, onChoose: chooseTheme, onClose: () => setShowThemes(false) }), showSettings && (0, jsx_runtime_1.jsx)(SettingsModal, { onClose: () => setShowSettings(false), mode: explanationMode, onMode: setExplanationMode, speed: speed, onSpeed: setSpeed, tutorConfig: tutorConfig, onTutorConfig: next => { setTutorConfig(next); (0, tutorConfig_1.saveTutorConfig)(next); }, themeId: themeId, onThemeId: chooseTheme, onOpenThemes: () => { setShowSettings(false); setShowThemes(true); } }), result.needsInput && (0, jsx_runtime_1.jsx)("div", { className: "modal-backdrop input-backdrop", children: (0, jsx_runtime_1.jsxs)("div", { className: "input-modal", children: [(0, jsx_runtime_1.jsx)("div", { className: "input-icon", children: (0, jsx_runtime_1.jsx)(icons_1.Zap, { size: 22 }) }), (0, jsx_runtime_1.jsx)("span", { children: "PROGRAM PAUSED" }), (0, jsx_runtime_1.jsx)("h2", { children: "Python is waiting for input" }), (0, jsx_runtime_1.jsx)("p", { children: result.needsInput.prompt || 'Enter a value to continue.' }), (0, jsx_runtime_1.jsx)("input", { autoFocus: true, value: pendingInput, onChange: (event) => setPendingInput(event.target.value), onKeyDown: (event) => event.key === 'Enter' && submitInput(), placeholder: "Type a value\u2026" }), (0, jsx_runtime_1.jsxs)("div", { children: [(0, jsx_runtime_1.jsx)("button", { className: "secondary", onClick: () => setResult(r => ({ ...r, needsInput: null, status: 'stopped' })), children: "Stop" }), (0, jsx_runtime_1.jsxs)("button", { className: "primary", onClick: submitInput, children: ["Send to Python ", (0, jsx_runtime_1.jsx)(icons_1.ChevronRight, { size: 15 })] })] }), (0, jsx_runtime_1.jsx)("small", { children: "input() always returns text. Convert it with int() or float() when needed." })] }) })] });
 }
 function ExampleLibrary({ onClose, onSelect }) {
     const [query, setQuery] = (0, react_1.useState)('');
     const [level, setLevel] = (0, react_1.useState)('All');
     const filtered = examples_1.examples.filter(example => (level === 'All' || example.level === level) && `${example.title} ${example.concept}`.toLowerCase().includes(query.toLowerCase()));
-    return (0, jsx_runtime_1.jsx)("div", { className: "drawer-backdrop", onMouseDown: event => event.target === event.currentTarget && onClose(), children: (0, jsx_runtime_1.jsxs)("aside", { className: "example-drawer", children: [(0, jsx_runtime_1.jsxs)("div", { className: "drawer-head", children: [(0, jsx_runtime_1.jsxs)("div", { children: [(0, jsx_runtime_1.jsx)("span", { children: "LEARNING LIBRARY" }), (0, jsx_runtime_1.jsx)("h2", { children: "Start with a story" }), (0, jsx_runtime_1.jsx)("p", { children: "Each example is ready to run and recommends the view that explains it best." })] }), (0, jsx_runtime_1.jsx)("button", { onClick: onClose, children: (0, jsx_runtime_1.jsx)(icons_1.X, { size: 18 }) })] }), (0, jsx_runtime_1.jsxs)("div", { className: "library-tools", children: [(0, jsx_runtime_1.jsxs)("label", { children: [(0, jsx_runtime_1.jsx)(icons_1.Search, { size: 16 }), (0, jsx_runtime_1.jsx)("input", { autoFocus: true, value: query, onChange: e => setQuery(e.target.value), placeholder: "Search concepts\u2026" })] }), (0, jsx_runtime_1.jsx)("div", { children: ['All', 'Beginner', 'Intermediate', 'AI Foundation'].map(item => (0, jsx_runtime_1.jsx)("button", { className: level === item ? 'active' : '', onClick: () => setLevel(item), children: item }, item)) })] }), (0, jsx_runtime_1.jsx)("div", { className: "example-grid", children: filtered.map(example => (0, jsx_runtime_1.jsxs)("button", { className: "example-card", onClick: () => onSelect(example), children: [(0, jsx_runtime_1.jsxs)("div", { children: [(0, jsx_runtime_1.jsx)("span", { className: `level ${example.level.replace(' ', '-').toLowerCase()}`, children: example.level }), (0, jsx_runtime_1.jsx)("small", { children: example.concept })] }), (0, jsx_runtime_1.jsx)("h3", { children: example.title }), (0, jsx_runtime_1.jsx)("p", { children: example.objective }), (0, jsx_runtime_1.jsxs)("div", { children: [(0, jsx_runtime_1.jsx)("code", { children: example.expected }), (0, jsx_runtime_1.jsxs)("span", { children: ["Open ", (0, jsx_runtime_1.jsx)(icons_1.ChevronRight, { size: 14 })] })] })] }, example.id)) })] }) });
+    return (0, jsx_runtime_1.jsx)("div", { className: "drawer-backdrop", onMouseDown: (event) => event.target === event.currentTarget && onClose(), children: (0, jsx_runtime_1.jsxs)("aside", { className: "example-drawer", children: [(0, jsx_runtime_1.jsxs)("div", { className: "drawer-head", children: [(0, jsx_runtime_1.jsxs)("div", { children: [(0, jsx_runtime_1.jsx)("span", { children: "LEARNING LIBRARY" }), (0, jsx_runtime_1.jsx)("h2", { children: "Start with a story" }), (0, jsx_runtime_1.jsx)("p", { children: "Each example is ready to run and recommends the view that explains it best." })] }), (0, jsx_runtime_1.jsx)("button", { onClick: onClose, children: (0, jsx_runtime_1.jsx)(icons_1.X, { size: 18 }) })] }), (0, jsx_runtime_1.jsxs)("div", { className: "library-tools", children: [(0, jsx_runtime_1.jsxs)("label", { children: [(0, jsx_runtime_1.jsx)(icons_1.Search, { size: 16 }), (0, jsx_runtime_1.jsx)("input", { autoFocus: true, value: query, onChange: e => setQuery(e.target.value), placeholder: "Search concepts\u2026" })] }), (0, jsx_runtime_1.jsx)("div", { children: ['All', 'Beginner', 'Intermediate', 'AI Foundation'].map(item => (0, jsx_runtime_1.jsx)("button", { className: level === item ? 'active' : '', onClick: () => setLevel(item), children: item }, item)) })] }), (0, jsx_runtime_1.jsx)("div", { className: "example-grid", children: filtered.map(example => (0, jsx_runtime_1.jsxs)("button", { className: "example-card", onClick: () => onSelect(example), children: [(0, jsx_runtime_1.jsxs)("div", { children: [(0, jsx_runtime_1.jsx)("span", { className: `level ${example.level.replace(' ', '-').toLowerCase()}`, children: example.level }), (0, jsx_runtime_1.jsx)("small", { children: example.concept })] }), (0, jsx_runtime_1.jsx)("h3", { children: example.title }), (0, jsx_runtime_1.jsx)("p", { children: example.objective }), (0, jsx_runtime_1.jsxs)("div", { children: [(0, jsx_runtime_1.jsx)("code", { children: example.expected }), (0, jsx_runtime_1.jsxs)("span", { children: ["Open ", (0, jsx_runtime_1.jsx)(icons_1.ChevronRight, { size: 14 })] })] })] }, example.id)) })] }) });
 }
-function SettingsModal({ onClose, mode, onMode, speed, onSpeed, tutorConfig, onTutorConfig }) {
-    return (0, jsx_runtime_1.jsx)("div", { className: "modal-backdrop", onMouseDown: event => event.target === event.currentTarget && onClose(), children: (0, jsx_runtime_1.jsxs)("div", { className: "settings-modal", children: [(0, jsx_runtime_1.jsxs)("div", { className: "settings-head", children: [(0, jsx_runtime_1.jsxs)("div", { children: [(0, jsx_runtime_1.jsx)("span", { children: "PLAYGROUND SETTINGS" }), (0, jsx_runtime_1.jsx)("h2", { children: "Shape your learning view" })] }), (0, jsx_runtime_1.jsx)("button", { onClick: onClose, children: (0, jsx_runtime_1.jsx)(icons_1.X, { size: 18 }) })] }), (0, jsx_runtime_1.jsxs)("div", { className: "setting-row", children: [(0, jsx_runtime_1.jsxs)("div", { children: [(0, jsx_runtime_1.jsx)("strong", { children: "Explanation language" }), (0, jsx_runtime_1.jsx)("p", { children: "Switch without losing your current execution position." })] }), (0, jsx_runtime_1.jsxs)("div", { className: "segmented", children: [(0, jsx_runtime_1.jsx)("button", { className: mode === 'beginner' ? 'active' : '', onClick: () => onMode('beginner'), children: "Beginner" }), (0, jsx_runtime_1.jsx)("button", { className: mode === 'technical' ? 'active' : '', onClick: () => onMode('technical'), children: "Technical" })] })] }), (0, jsx_runtime_1.jsxs)("div", { className: "setting-row", children: [(0, jsx_runtime_1.jsxs)("div", { children: [(0, jsx_runtime_1.jsx)("strong", { children: "Playback speed" }), (0, jsx_runtime_1.jsx)("p", { children: "Animations remain interruptible at every speed." })] }), (0, jsx_runtime_1.jsxs)("select", { value: speed, onChange: e => onSpeed(Number(e.target.value)), children: [(0, jsx_runtime_1.jsx)("option", { value: 1400, children: "Calm \u00B7 0.5\u00D7" }), (0, jsx_runtime_1.jsx)("option", { value: 850, children: "Normal \u00B7 1\u00D7" }), (0, jsx_runtime_1.jsx)("option", { value: 450, children: "Quick \u00B7 2\u00D7" }), (0, jsx_runtime_1.jsx)("option", { value: 220, children: "Scan \u00B7 4\u00D7" })] })] }), (0, jsx_runtime_1.jsx)(TutorSettings, { config: tutorConfig, onChange: onTutorConfig }), (0, jsx_runtime_1.jsxs)("div", { className: "limits-note", children: [(0, jsx_runtime_1.jsx)(icons_1.ShieldCheck, { size: 18 }), (0, jsx_runtime_1.jsxs)("div", { children: [(0, jsx_runtime_1.jsx)("strong", { children: "Execution guardrails" }), (0, jsx_runtime_1.jsx)("p", { children: "3 seconds CPU \u00B7 2,500 events \u00B7 64 KB output \u00B7 restricted imports and host access" })] })] }), (0, jsx_runtime_1.jsx)("button", { className: "primary full", onClick: onClose, children: "Save preferences" })] }) });
+function ThemePicker({ current, onChoose, onClose }) {
+    const groups = ['Dark', 'Light'];
+    return (0, jsx_runtime_1.jsx)("div", { className: "modal-backdrop", onMouseDown: (event) => event.target === event.currentTarget && onClose(), children: (0, jsx_runtime_1.jsxs)("div", { className: "settings-modal theme-modal", children: [(0, jsx_runtime_1.jsxs)("div", { className: "settings-head", children: [(0, jsx_runtime_1.jsxs)("div", { children: [(0, jsx_runtime_1.jsx)("span", { children: "APPEARANCE" }), (0, jsx_runtime_1.jsx)("h2", { children: "Choose a theme" })] }), (0, jsx_runtime_1.jsx)("button", { onClick: onClose, children: (0, jsx_runtime_1.jsx)(icons_1.X, { size: 18 }) })] }), groups.map(group => (0, jsx_runtime_1.jsxs)("div", { className: "theme-group", children: [(0, jsx_runtime_1.jsx)("div", { className: "theme-group-label", children: group }), (0, jsx_runtime_1.jsx)("div", { className: "theme-grid", children: themes_1.THEMES.filter(t => t.group === group).map(t => {
+                                const v = t.vars;
+                                return (0, jsx_runtime_1.jsxs)("button", { className: `theme-card ${current === t.id ? 'active' : ''}`, onClick: () => onChoose(t.id), style: { background: v.bg, borderColor: current === t.id ? v.blue : v.line }, children: [(0, jsx_runtime_1.jsxs)("div", { className: "theme-preview", style: { background: v.panel2, borderColor: v.line }, children: [(0, jsx_runtime_1.jsx)("span", { style: { background: v.blue } }), (0, jsx_runtime_1.jsx)("span", { style: { background: v.green } }), (0, jsx_runtime_1.jsx)("span", { style: { background: v.purple } }), (0, jsx_runtime_1.jsx)("span", { style: { background: v.amber } }), (0, jsx_runtime_1.jsx)("span", { style: { background: v.red } })] }), (0, jsx_runtime_1.jsxs)("div", { className: "theme-name", style: { color: v.text }, children: [t.name, current === t.id && (0, jsx_runtime_1.jsx)(icons_1.Check, { size: 13 })] })] }, t.id);
+                            }) })] }, group))] }) });
+}
+function SettingsModal({ onClose, mode, onMode, speed, onSpeed, tutorConfig, onTutorConfig, themeId, onOpenThemes }) {
+    const theme = (0, themes_1.getTheme)(themeId);
+    return (0, jsx_runtime_1.jsx)("div", { className: "modal-backdrop", onMouseDown: (event) => event.target === event.currentTarget && onClose(), children: (0, jsx_runtime_1.jsxs)("div", { className: "settings-modal", children: [(0, jsx_runtime_1.jsxs)("div", { className: "settings-head", children: [(0, jsx_runtime_1.jsxs)("div", { children: [(0, jsx_runtime_1.jsx)("span", { children: "PLAYGROUND SETTINGS" }), (0, jsx_runtime_1.jsx)("h2", { children: "Shape your learning view" })] }), (0, jsx_runtime_1.jsx)("button", { onClick: onClose, children: (0, jsx_runtime_1.jsx)(icons_1.X, { size: 18 }) })] }), (0, jsx_runtime_1.jsxs)("div", { className: "setting-row", children: [(0, jsx_runtime_1.jsxs)("div", { children: [(0, jsx_runtime_1.jsx)("strong", { children: "Theme" }), (0, jsx_runtime_1.jsx)("p", { children: "Pick a colour scheme. Your choice is saved in this browser." })] }), (0, jsx_runtime_1.jsxs)("button", { className: "theme-open-btn", onClick: onOpenThemes, children: [(0, jsx_runtime_1.jsx)("span", { className: "theme-chip", style: { background: theme.vars.blue } }), (0, jsx_runtime_1.jsx)("span", { className: "theme-chip", style: { background: theme.vars.purple } }), (0, jsx_runtime_1.jsx)("span", { className: "theme-chip", style: { background: theme.vars.green } }), theme.name, (0, jsx_runtime_1.jsx)(icons_1.ChevronRight, { size: 14 })] })] }), (0, jsx_runtime_1.jsxs)("div", { className: "setting-row", children: [(0, jsx_runtime_1.jsxs)("div", { children: [(0, jsx_runtime_1.jsx)("strong", { children: "Explanation language" }), (0, jsx_runtime_1.jsx)("p", { children: "Switch without losing your current execution position." })] }), (0, jsx_runtime_1.jsxs)("div", { className: "segmented", children: [(0, jsx_runtime_1.jsx)("button", { className: mode === 'beginner' ? 'active' : '', onClick: () => onMode('beginner'), children: "Beginner" }), (0, jsx_runtime_1.jsx)("button", { className: mode === 'technical' ? 'active' : '', onClick: () => onMode('technical'), children: "Technical" })] })] }), (0, jsx_runtime_1.jsxs)("div", { className: "setting-row", children: [(0, jsx_runtime_1.jsxs)("div", { children: [(0, jsx_runtime_1.jsx)("strong", { children: "Playback speed" }), (0, jsx_runtime_1.jsx)("p", { children: "Animations remain interruptible at every speed." })] }), (0, jsx_runtime_1.jsxs)("select", { value: speed, onChange: e => onSpeed(Number(e.target.value)), children: [(0, jsx_runtime_1.jsx)("option", { value: 1400, children: "Calm \u00B7 0.5\u00D7" }), (0, jsx_runtime_1.jsx)("option", { value: 850, children: "Normal \u00B7 1\u00D7" }), (0, jsx_runtime_1.jsx)("option", { value: 450, children: "Quick \u00B7 2\u00D7" }), (0, jsx_runtime_1.jsx)("option", { value: 220, children: "Scan \u00B7 4\u00D7" })] })] }), (0, jsx_runtime_1.jsx)(TutorSettings, { config: tutorConfig, onChange: onTutorConfig }), (0, jsx_runtime_1.jsxs)("div", { className: "limits-note", children: [(0, jsx_runtime_1.jsx)(icons_1.ShieldCheck, { size: 18 }), (0, jsx_runtime_1.jsxs)("div", { children: [(0, jsx_runtime_1.jsx)("strong", { children: "Execution guardrails" }), (0, jsx_runtime_1.jsx)("p", { children: "3 seconds CPU \u00B7 2,500 events \u00B7 64 KB output \u00B7 restricted imports and host access" })] })] }), (0, jsx_runtime_1.jsx)("button", { className: "primary full", onClick: onClose, children: "Save preferences" })] }) });
 }
 function TutorSettings({ config, onChange }) {
     const [showKey, setShowKey] = (0, react_1.useState)(false);
     const [testing, setTesting] = (0, react_1.useState)(false);
     const [testResult, setTestResult] = (0, react_1.useState)(null);
-    const providers = ['server', 'openai', 'anthropic', 'openrouter', 'nvidia', 'custom'];
+    const [models, setModels] = (0, react_1.useState)([]);
+    const [loadingModels, setLoadingModels] = (0, react_1.useState)(false);
+    const [modelsError, setModelsError] = (0, react_1.useState)('');
+    const [freeOnly, setFreeOnly] = (0, react_1.useState)(true);
     const meta = config.provider !== 'server' ? tutorConfig_1.PROVIDER_META[config.provider] : undefined;
     const update = (patch) => { setTestResult(null); onChange({ ...config, ...patch }); };
+    // Reset the loaded list whenever the provider or key changes so stale models
+    // from another provider are never shown.
+    (0, react_1.useEffect)(() => { setModels([]); setModelsError(''); }, [config.provider, config.apiKey]);
+    const loadModels = async () => {
+        setLoadingModels(true);
+        setModelsError('');
+        setModels([]);
+        try {
+            const response = await fetch('/api/tutor/models', {
+                method: 'POST', headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ provider: config.provider, apiKey: config.apiKey.trim() || undefined, baseUrl: config.provider === 'custom' ? config.baseUrl.trim() || undefined : undefined, freeOnly: config.provider === 'openrouter' ? freeOnly : false }),
+            });
+            const data = await response.json().catch(() => ({}));
+            if (!response.ok)
+                throw new Error(data.detail || 'Could not load models.');
+            setModels(data.models || []);
+            if (!data.models?.length)
+                setModelsError('No models returned for this provider/key.');
+        }
+        catch (err) {
+            setModelsError(err instanceof Error ? err.message : 'Could not load models.');
+        }
+        finally {
+            setLoadingModels(false);
+        }
+    };
     const test = async () => {
         setTesting(true);
         setTestResult(null);
@@ -53899,7 +53948,9 @@ function TutorSettings({ config, onChange }) {
             setTesting(false);
         }
     };
-    return (0, jsx_runtime_1.jsxs)("div", { className: "tutor-settings", children: [(0, jsx_runtime_1.jsx)("div", { className: "setting-row no-border", children: (0, jsx_runtime_1.jsxs)("div", { children: [(0, jsx_runtime_1.jsx)("strong", { children: "AI tutor" }), (0, jsx_runtime_1.jsx)("p", { children: "Bring your own API key. It is stored only in this browser and sent directly with each question \u2014 never saved on the server." })] }) }), (0, jsx_runtime_1.jsxs)("div", { className: "tutor-config-grid", children: [(0, jsx_runtime_1.jsxs)("label", { className: "tcfg", children: [(0, jsx_runtime_1.jsx)("span", { children: "Provider" }), (0, jsx_runtime_1.jsxs)("select", { value: config.provider, onChange: e => update({ provider: e.target.value }), children: [(0, jsx_runtime_1.jsx)("option", { value: "server", children: "Server default (offline if none)" }), (0, jsx_runtime_1.jsx)("option", { value: "openai", children: "OpenAI" }), (0, jsx_runtime_1.jsx)("option", { value: "anthropic", children: "Anthropic (Claude)" }), (0, jsx_runtime_1.jsx)("option", { value: "openrouter", children: "OpenRouter" }), (0, jsx_runtime_1.jsx)("option", { value: "nvidia", children: "NVIDIA NIM" }), (0, jsx_runtime_1.jsx)("option", { value: "custom", children: "Custom (OpenAI-compatible)" })] })] }), config.provider === 'server' && ((0, jsx_runtime_1.jsxs)("div", { className: "server-provider-callout", children: [(0, jsx_runtime_1.jsxs)("p", { children: ["Currently using ", (0, jsx_runtime_1.jsx)("b", { children: "Server Default" }), " (or offline). To enter your own API key, choose a provider:"] }), (0, jsx_runtime_1.jsxs)("div", { className: "provider-chips", children: [(0, jsx_runtime_1.jsx)("button", { type: "button", className: "provider-chip", onClick: () => update({ provider: 'openai' }), children: "+ OpenAI" }), (0, jsx_runtime_1.jsx)("button", { type: "button", className: "provider-chip", onClick: () => update({ provider: 'anthropic' }), children: "+ Anthropic (Claude)" }), (0, jsx_runtime_1.jsx)("button", { type: "button", className: "provider-chip", onClick: () => update({ provider: 'openrouter' }), children: "+ OpenRouter" }), (0, jsx_runtime_1.jsx)("button", { type: "button", className: "provider-chip", onClick: () => update({ provider: 'nvidia' }), children: "+ NVIDIA NIM" }), (0, jsx_runtime_1.jsx)("button", { type: "button", className: "provider-chip", onClick: () => update({ provider: 'custom' }), children: "+ Custom Endpoint" })] })] })), config.provider !== 'server' && (0, jsx_runtime_1.jsxs)(jsx_runtime_1.Fragment, { children: [(0, jsx_runtime_1.jsxs)("label", { className: "tcfg", children: [(0, jsx_runtime_1.jsxs)("span", { children: ["API key ", meta?.keyUrl && (0, jsx_runtime_1.jsxs)("a", { href: meta.keyUrl, target: "_blank", rel: "noopener noreferrer", children: [meta.keyUrlLabel, " \u2197"] })] }), (0, jsx_runtime_1.jsxs)("div", { className: "key-input", children: [(0, jsx_runtime_1.jsx)("input", { type: showKey ? 'text' : 'password', value: config.apiKey, onChange: e => update({ apiKey: e.target.value }), placeholder: meta?.keyPlaceholder, autoComplete: "off", spellCheck: false }), (0, jsx_runtime_1.jsx)("button", { type: "button", onClick: () => setShowKey(s => !s), children: showKey ? 'Hide' : 'Show' })] })] }), (0, jsx_runtime_1.jsxs)("label", { className: "tcfg", children: [(0, jsx_runtime_1.jsx)("span", { children: "Model" }), (0, jsx_runtime_1.jsx)("input", { value: config.model, onChange: e => update({ model: e.target.value }), placeholder: meta?.modelPlaceholder, autoComplete: "off", spellCheck: false })] }), config.provider === 'custom' && (0, jsx_runtime_1.jsxs)("label", { className: "tcfg", children: [(0, jsx_runtime_1.jsx)("span", { children: "Base URL" }), (0, jsx_runtime_1.jsx)("input", { value: config.baseUrl, onChange: e => update({ baseUrl: e.target.value }), placeholder: "https://host/v1", autoComplete: "off", spellCheck: false })] })] })] }), (0, jsx_runtime_1.jsxs)("div", { className: "tutor-config-actions", children: [(0, jsx_runtime_1.jsx)("button", { className: "secondary", onClick: test, disabled: testing, children: testing ? 'Testing…' : 'Test connection' }), testResult && (0, jsx_runtime_1.jsxs)("span", { className: `test-result ${testResult.ok ? 'ok' : 'bad'}`, children: [testResult.ok ? '✓' : '✕', " ", testResult.text] })] }), (0, jsx_runtime_1.jsxs)("p", { className: "tutor-links", children: ["New to this? Free options: ", (0, jsx_runtime_1.jsx)("a", { href: "https://openrouter.ai/keys", target: "_blank", rel: "noopener noreferrer", children: "OpenRouter \u2197" }), " \u00B7 ", (0, jsx_runtime_1.jsx)("a", { href: "https://build.nvidia.com/settings/api-keys", target: "_blank", rel: "noopener noreferrer", children: "NVIDIA NIM \u2197" })] })] });
+    return (0, jsx_runtime_1.jsxs)("div", { className: "tutor-settings", children: [(0, jsx_runtime_1.jsx)("div", { className: "setting-row no-border", children: (0, jsx_runtime_1.jsxs)("div", { children: [(0, jsx_runtime_1.jsx)("strong", { children: "AI tutor" }), (0, jsx_runtime_1.jsx)("p", { children: "Bring your own API key. It is stored only in this browser and sent directly with each question \u2014 never saved on the server." })] }) }), (0, jsx_runtime_1.jsxs)("div", { className: "tutor-config-grid", children: [(0, jsx_runtime_1.jsxs)("label", { className: "tcfg", children: [(0, jsx_runtime_1.jsx)("span", { children: "Provider" }), (0, jsx_runtime_1.jsxs)("select", { value: config.provider, onChange: e => update({ provider: e.target.value }), children: [(0, jsx_runtime_1.jsx)("option", { value: "server", children: "Server default (offline if none)" }), (0, jsx_runtime_1.jsx)("option", { value: "openai", children: "OpenAI" }), (0, jsx_runtime_1.jsx)("option", { value: "anthropic", children: "Anthropic (Claude)" }), (0, jsx_runtime_1.jsx)("option", { value: "openrouter", children: "OpenRouter" }), (0, jsx_runtime_1.jsx)("option", { value: "nvidia", children: "NVIDIA NIM" }), (0, jsx_runtime_1.jsx)("option", { value: "custom", children: "Custom (OpenAI-compatible)" })] })] }), config.provider === 'server' && ((0, jsx_runtime_1.jsxs)("div", { className: "server-provider-callout", children: [(0, jsx_runtime_1.jsxs)("p", { children: ["Currently using ", (0, jsx_runtime_1.jsx)("b", { children: "Server Default" }), " (or offline). To enter your own API key, choose a provider:"] }), (0, jsx_runtime_1.jsxs)("div", { className: "provider-chips", children: [(0, jsx_runtime_1.jsx)("button", { type: "button", className: "provider-chip", onClick: () => update({ provider: 'openai' }), children: "+ OpenAI" }), (0, jsx_runtime_1.jsx)("button", { type: "button", className: "provider-chip", onClick: () => update({ provider: 'anthropic' }), children: "+ Anthropic (Claude)" }), (0, jsx_runtime_1.jsx)("button", { type: "button", className: "provider-chip", onClick: () => update({ provider: 'openrouter' }), children: "+ OpenRouter" }), (0, jsx_runtime_1.jsx)("button", { type: "button", className: "provider-chip", onClick: () => update({ provider: 'nvidia' }), children: "+ NVIDIA NIM" }), (0, jsx_runtime_1.jsx)("button", { type: "button", className: "provider-chip", onClick: () => update({ provider: 'custom' }), children: "+ Custom Endpoint" })] })] })), config.provider !== 'server' && (0, jsx_runtime_1.jsxs)(jsx_runtime_1.Fragment, { children: [(0, jsx_runtime_1.jsxs)("label", { className: "tcfg", children: [(0, jsx_runtime_1.jsxs)("span", { children: ["API key ", meta?.keyUrl && (0, jsx_runtime_1.jsxs)("a", { href: meta.keyUrl, target: "_blank", rel: "noopener noreferrer", children: [meta.keyUrlLabel, " \u2197"] })] }), (0, jsx_runtime_1.jsxs)("div", { className: "key-input", children: [(0, jsx_runtime_1.jsx)("input", { type: showKey ? 'text' : 'password', value: config.apiKey, onChange: (e) => update({ apiKey: e.target.value }), placeholder: meta?.keyPlaceholder, autoComplete: "off", spellCheck: false }), (0, jsx_runtime_1.jsx)("button", { type: "button", onClick: () => setShowKey(s => !s), children: showKey ? 'Hide' : 'Show' })] })] }), config.provider === 'custom' && (0, jsx_runtime_1.jsxs)("label", { className: "tcfg", children: [(0, jsx_runtime_1.jsx)("span", { children: "Base URL" }), (0, jsx_runtime_1.jsx)("input", { value: config.baseUrl, onChange: e => update({ baseUrl: e.target.value }), placeholder: "https://host/v1", autoComplete: "off", spellCheck: false })] }), (0, jsx_runtime_1.jsxs)("label", { className: "tcfg", children: [(0, jsx_runtime_1.jsxs)("span", { children: ["Model", config.provider === 'openrouter' && (0, jsx_runtime_1.jsxs)("label", { className: "free-toggle", children: [(0, jsx_runtime_1.jsx)("input", { type: "checkbox", checked: freeOnly, onChange: e => setFreeOnly(e.target.checked) }), " Free only"] })] }), (0, jsx_runtime_1.jsxs)("div", { className: "model-row", children: [models.length > 0
+                                                ? (0, jsx_runtime_1.jsxs)("select", { value: config.model, onChange: e => update({ model: e.target.value }), children: [(0, jsx_runtime_1.jsxs)("option", { value: "", children: ["Default (", meta?.defaultModel, ")"] }), models.map(m => (0, jsx_runtime_1.jsxs)("option", { value: m.id, children: [m.free ? '🆓 ' : '', m.name] }, m.id))] })
+                                                : (0, jsx_runtime_1.jsx)("input", { value: config.model, onChange: e => update({ model: e.target.value }), placeholder: meta?.modelPlaceholder, autoComplete: "off", spellCheck: false }), (0, jsx_runtime_1.jsx)("button", { type: "button", className: "load-models-btn", onClick: loadModels, disabled: loadingModels, children: loadingModels ? 'Loading…' : (models.length ? 'Reload' : 'Load models') })] }), modelsError && (0, jsx_runtime_1.jsx)("small", { className: "model-hint bad", children: modelsError }), !modelsError && models.length > 0 && (0, jsx_runtime_1.jsxs)("small", { className: "model-hint", children: [models.length, " models available \u00B7 pick one from the list"] }), !modelsError && models.length === 0 && (0, jsx_runtime_1.jsx)("small", { className: "model-hint", children: "Leave blank for the provider default, or load the list to choose." })] })] })] }), (0, jsx_runtime_1.jsxs)("div", { className: "tutor-config-actions", children: [(0, jsx_runtime_1.jsx)("button", { className: "secondary", onClick: test, disabled: testing, children: testing ? 'Testing…' : 'Test connection' }), testResult && (0, jsx_runtime_1.jsxs)("span", { className: `test-result ${testResult.ok ? 'ok' : 'bad'}`, children: [testResult.ok ? '✓' : '✕', " ", testResult.text] })] }), (0, jsx_runtime_1.jsxs)("p", { className: "tutor-links", children: ["New to this? Free options: ", (0, jsx_runtime_1.jsx)("a", { href: "https://openrouter.ai/keys", target: "_blank", rel: "noopener noreferrer", children: "OpenRouter \u2197" }), " \u00B7 ", (0, jsx_runtime_1.jsx)("a", { href: "https://build.nvidia.com/settings/api-keys", target: "_blank", rel: "noopener noreferrer", children: "NVIDIA NIM \u2197" })] })] });
 }
 exports.default = App;
 
@@ -53907,7 +53958,7 @@ exports.default = App;
 "app/icons.js":function(module,exports,require){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.Zap = exports.X = exports.Sun = exports.ShieldCheck = exports.Settings2 = exports.Search = exports.Moon = exports.Keyboard = exports.Code2 = exports.Check = exports.AlertCircle = exports.Square = exports.SkipForward = exports.SkipBack = exports.Play = exports.Pause = exports.Gauge = exports.Info = exports.ChevronDown = exports.ArrowRight = exports.AlertTriangle = exports.ZoomIn = exports.Route = exports.Repeat2 = exports.RefreshCw = exports.Plus = exports.Network = exports.Minus = exports.Maximize2 = exports.GitBranch = exports.CornerDownLeft = exports.CircleDot = exports.ChevronRight = exports.Braces = exports.Box = exports.Sparkles = exports.RotateCcw = exports.Eraser = exports.Copy = void 0;
+exports.Palette = exports.Zap = exports.X = exports.Sun = exports.ShieldCheck = exports.Settings2 = exports.Search = exports.Moon = exports.Keyboard = exports.Code2 = exports.Check = exports.AlertCircle = exports.Square = exports.SkipForward = exports.SkipBack = exports.Play = exports.Pause = exports.Gauge = exports.Info = exports.ChevronDown = exports.ArrowRight = exports.AlertTriangle = exports.ZoomIn = exports.Route = exports.Repeat2 = exports.RefreshCw = exports.Plus = exports.Network = exports.Minus = exports.Maximize2 = exports.GitBranch = exports.CornerDownLeft = exports.CircleDot = exports.ChevronRight = exports.Braces = exports.Box = exports.Sparkles = exports.RotateCcw = exports.Eraser = exports.Copy = void 0;
 const jsx_runtime_1 = require("vendor/react/jsx-runtime.js");
 const paths = {
     Copy: (0, jsx_runtime_1.jsxs)(jsx_runtime_1.Fragment, { children: [(0, jsx_runtime_1.jsx)("rect", { x: "8", y: "8", width: "11", height: "11", rx: "2" }), (0, jsx_runtime_1.jsx)("path", { d: "M16 8V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h3" })] }),
@@ -53926,9 +53977,10 @@ const paths = {
     Search: (0, jsx_runtime_1.jsxs)(jsx_runtime_1.Fragment, { children: [(0, jsx_runtime_1.jsx)("circle", { cx: "10", cy: "10", r: "6" }), (0, jsx_runtime_1.jsx)("path", { d: "m15 15 5 5" })] }), Settings2: (0, jsx_runtime_1.jsxs)(jsx_runtime_1.Fragment, { children: [(0, jsx_runtime_1.jsx)("circle", { cx: "12", cy: "12", r: "3" }), (0, jsx_runtime_1.jsx)("path", { d: "M12 2v3M12 19v3M2 12h3M19 12h3M5 5l2 2M17 17l2 2M19 5l-2 2M7 17l-2 2" })] }),
     ShieldCheck: (0, jsx_runtime_1.jsxs)(jsx_runtime_1.Fragment, { children: [(0, jsx_runtime_1.jsx)("path", { d: "M12 3 4 6v6c0 5 3.5 8 8 10 4.5-2 8-5 8-10V6Z" }), (0, jsx_runtime_1.jsx)("path", { d: "m8 12 3 3 5-6" })] }), Keyboard: (0, jsx_runtime_1.jsxs)(jsx_runtime_1.Fragment, { children: [(0, jsx_runtime_1.jsx)("rect", { x: "3", y: "6", width: "18", height: "12", rx: "2" }), (0, jsx_runtime_1.jsx)("path", { d: "M7 10h.01M11 10h.01M15 10h.01M18 10h.01M7 14h10" })] }),
     Sun: (0, jsx_runtime_1.jsxs)(jsx_runtime_1.Fragment, { children: [(0, jsx_runtime_1.jsx)("circle", { cx: "12", cy: "12", r: "4" }), (0, jsx_runtime_1.jsx)("path", { d: "M12 2v2M12 20v2M2 12h2M20 12h2M5 5l1.5 1.5M17.5 17.5 19 19M19 5l-1.5 1.5M6.5 17.5 5 19" })] }), Moon: (0, jsx_runtime_1.jsx)("path", { d: "M20 15a8 8 0 0 1-11-11 9 9 0 1 0 11 11Z" }), Gauge: (0, jsx_runtime_1.jsxs)(jsx_runtime_1.Fragment, { children: [(0, jsx_runtime_1.jsx)("path", { d: "M4 18a9 9 0 1 1 16 0" }), (0, jsx_runtime_1.jsx)("path", { d: "m12 14 4-5" })] }), Zap: (0, jsx_runtime_1.jsx)("path", { d: "m13 2-9 12h7l-1 8 9-12h-7Z" }), CornerDownLeft: (0, jsx_runtime_1.jsxs)(jsx_runtime_1.Fragment, { children: [(0, jsx_runtime_1.jsx)("path", { d: "M20 5v5a4 4 0 0 1-4 4H5" }), (0, jsx_runtime_1.jsx)("path", { d: "m9 10-4 4 4 4" })] }),
+    Palette: (0, jsx_runtime_1.jsxs)(jsx_runtime_1.Fragment, { children: [(0, jsx_runtime_1.jsx)("circle", { cx: "12", cy: "12", r: "9" }), (0, jsx_runtime_1.jsx)("circle", { cx: "8", cy: "10", r: "1.1" }), (0, jsx_runtime_1.jsx)("circle", { cx: "12", cy: "8", r: "1.1" }), (0, jsx_runtime_1.jsx)("circle", { cx: "16", cy: "10", r: "1.1" }), (0, jsx_runtime_1.jsx)("path", { d: "M12 21a3 3 0 0 1 0-6 2 2 0 0 0 2-2 2 2 0 0 1 2-2h3" })] }),
 };
 function make(name) { return function Icon({ size = 24, ...props }) { return (0, jsx_runtime_1.jsx)("svg", { width: size, height: size, viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: "1.8", strokeLinecap: "round", strokeLinejoin: "round", "aria-hidden": "true", ...props, children: paths[name] || (0, jsx_runtime_1.jsx)("circle", { cx: "12", cy: "12", r: "8" }) }); }; }
-exports.Copy = make('Copy'), exports.Eraser = make('Eraser'), exports.RotateCcw = make('RotateCcw'), exports.Sparkles = make('Sparkles'), exports.Box = make('Box'), exports.Braces = make('Braces'), exports.ChevronRight = make('ChevronRight'), exports.CircleDot = make('CircleDot'), exports.CornerDownLeft = make('CornerDownLeft'), exports.GitBranch = make('GitBranch'), exports.Maximize2 = make('Maximize2'), exports.Minus = make('Minus'), exports.Network = make('Network'), exports.Plus = make('Plus'), exports.RefreshCw = make('RefreshCw'), exports.Repeat2 = make('Repeat2'), exports.Route = make('Route'), exports.ZoomIn = make('ZoomIn'), exports.AlertTriangle = make('AlertTriangle'), exports.ArrowRight = make('ArrowRight'), exports.ChevronDown = make('ChevronDown'), exports.Info = make('Info'), exports.Gauge = make('Gauge'), exports.Pause = make('Pause'), exports.Play = make('Play'), exports.SkipBack = make('SkipBack'), exports.SkipForward = make('SkipForward'), exports.Square = make('Square'), exports.AlertCircle = make('AlertCircle'), exports.Check = make('Check'), exports.Code2 = make('Code2'), exports.Keyboard = make('Keyboard'), exports.Moon = make('Moon'), exports.Search = make('Search'), exports.Settings2 = make('Settings2'), exports.ShieldCheck = make('ShieldCheck'), exports.Sun = make('Sun'), exports.X = make('X'), exports.Zap = make('Zap');
+exports.Copy = make('Copy'), exports.Eraser = make('Eraser'), exports.RotateCcw = make('RotateCcw'), exports.Sparkles = make('Sparkles'), exports.Box = make('Box'), exports.Braces = make('Braces'), exports.ChevronRight = make('ChevronRight'), exports.CircleDot = make('CircleDot'), exports.CornerDownLeft = make('CornerDownLeft'), exports.GitBranch = make('GitBranch'), exports.Maximize2 = make('Maximize2'), exports.Minus = make('Minus'), exports.Network = make('Network'), exports.Plus = make('Plus'), exports.RefreshCw = make('RefreshCw'), exports.Repeat2 = make('Repeat2'), exports.Route = make('Route'), exports.ZoomIn = make('ZoomIn'), exports.AlertTriangle = make('AlertTriangle'), exports.ArrowRight = make('ArrowRight'), exports.ChevronDown = make('ChevronDown'), exports.Info = make('Info'), exports.Gauge = make('Gauge'), exports.Pause = make('Pause'), exports.Play = make('Play'), exports.SkipBack = make('SkipBack'), exports.SkipForward = make('SkipForward'), exports.Square = make('Square'), exports.AlertCircle = make('AlertCircle'), exports.Check = make('Check'), exports.Code2 = make('Code2'), exports.Keyboard = make('Keyboard'), exports.Moon = make('Moon'), exports.Search = make('Search'), exports.Settings2 = make('Settings2'), exports.ShieldCheck = make('ShieldCheck'), exports.Sun = make('Sun'), exports.X = make('X'), exports.Zap = make('Zap'), exports.Palette = make('Palette');
 
 },
 "app/components/CodePane.js":function(module,exports,require){
@@ -54387,6 +54439,7 @@ exports.PROVIDER_META = {
     openai: {
         label: 'OpenAI',
         modelPlaceholder: 'gpt-4o-mini',
+        defaultModel: 'gpt-4o-mini',
         keyPlaceholder: 'sk-...',
         keyUrl: 'https://platform.openai.com/api-keys',
         keyUrlLabel: 'Get an OpenAI key',
@@ -54394,13 +54447,15 @@ exports.PROVIDER_META = {
     anthropic: {
         label: 'Anthropic (Claude)',
         modelPlaceholder: 'claude-3-5-haiku-latest',
+        defaultModel: 'claude-3-5-haiku-latest',
         keyPlaceholder: 'sk-ant-...',
         keyUrl: 'https://console.anthropic.com/settings/keys',
         keyUrlLabel: 'Get an Anthropic key',
     },
     openrouter: {
         label: 'OpenRouter',
-        modelPlaceholder: 'openai/gpt-4o-mini',
+        modelPlaceholder: 'openrouter/free',
+        defaultModel: 'openrouter/free',
         keyPlaceholder: 'sk-or-...',
         keyUrl: 'https://openrouter.ai/keys',
         keyUrlLabel: 'Get an OpenRouter key',
@@ -54408,6 +54463,7 @@ exports.PROVIDER_META = {
     nvidia: {
         label: 'NVIDIA NIM',
         modelPlaceholder: 'minimaxai/minimax-m3.1-flash',
+        defaultModel: 'minimaxai/minimax-m3.1-flash',
         keyPlaceholder: 'nvapi-...',
         keyUrl: 'https://build.nvidia.com/settings/api-keys',
         keyUrlLabel: 'Get an NVIDIA key',
@@ -54415,6 +54471,7 @@ exports.PROVIDER_META = {
     custom: {
         label: 'Custom (OpenAI-compatible)',
         modelPlaceholder: 'model-name',
+        defaultModel: 'model-name',
         keyPlaceholder: 'your-api-key',
     },
 };
@@ -54487,5 +54544,131 @@ exports.examples = [
     { id: 'loss', title: 'Mean squared loss', level: 'AI Foundation', concept: 'Loss calculation', recommended: 'loop', objective: 'Understand error, square, sum, and mean.', expected: '0.03', code: `actual = [1.0, 0.0, 1.0]\npredicted = [0.8, 0.1, 0.7]\ntotal_loss = 0\nfor truth, guess in zip(actual, predicted):\n    error = truth - guess\n    total_loss = total_loss + error * error\nloss = total_loss / len(actual)\nprint(round(loss, 3))` },
     { id: 'gradient', title: 'One gradient step', level: 'AI Foundation', concept: 'Gradient descent', recommended: 'journey', objective: 'See a parameter move opposite its gradient.', expected: '1.96', code: `weight = 2.0\nlearning_rate = 0.1\ngradient = 0.4\nupdate = learning_rate * gradient\nweight = weight - update\nprint(weight)` },
 ];
+
+},
+"app/lib/themes.js":function(module,exports,require){
+"use strict";
+// Theme system. Each theme is a complete set of CSS custom properties applied to
+// the .app root. Palettes are drawn from well-established open-source color schemes
+// (Catppuccin, Dracula, Nord, Tokyo Night, Gruvbox) plus the original "Aurora" default.
+// Hex values follow each project's published palette.
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.DEFAULT_THEME_ID = exports.THEMES = void 0;
+exports.getTheme = getTheme;
+exports.loadThemeId = loadThemeId;
+exports.saveThemeId = saveThemeId;
+exports.applyTheme = applyTheme;
+exports.THEMES = [
+    {
+        id: 'aurora', name: 'Aurora', group: 'Dark',
+        vars: {
+            bg: '#070c14', panel: '#0c1421', panel2: '#101b2b', line: '#1d2a3d',
+            text: '#edf4ff', muted: '#7f8da3',
+            blue: '#4c8dff', cyan: '#36d7ea', green: '#55dca3', purple: '#a77bf3', amber: '#ffbf69', red: '#ff6b7a',
+            shadow: '0 20px 60px rgba(0,0,0,.28)', colorScheme: 'dark',
+        },
+    },
+    {
+        id: 'catppuccin-mocha', name: 'Catppuccin Mocha', group: 'Dark',
+        vars: {
+            bg: '#11111b', panel: '#181825', panel2: '#1e1e2e', line: '#313244',
+            text: '#cdd6f4', muted: '#9399b2',
+            blue: '#89b4fa', cyan: '#94e2d5', green: '#a6e3a1', purple: '#cba6f7', amber: '#f9e2af', red: '#f38ba8',
+            shadow: '0 20px 60px rgba(0,0,0,.45)', colorScheme: 'dark',
+        },
+    },
+    {
+        id: 'dracula', name: 'Dracula', group: 'Dark',
+        vars: {
+            bg: '#21222c', panel: '#282a36', panel2: '#2e3140', line: '#44475a',
+            text: '#f8f8f2', muted: '#8a8fa3',
+            blue: '#8be9fd', cyan: '#8be9fd', green: '#50fa7b', purple: '#bd93f9', amber: '#f1fa8c', red: '#ff5555',
+            shadow: '0 20px 60px rgba(0,0,0,.4)', colorScheme: 'dark',
+        },
+    },
+    {
+        id: 'tokyo-night', name: 'Tokyo Night', group: 'Dark',
+        vars: {
+            bg: '#1a1b26', panel: '#1f2335', panel2: '#24283b', line: '#2f334d',
+            text: '#c0caf5', muted: '#7a82a8',
+            blue: '#7aa2f7', cyan: '#7dcfff', green: '#9ece6a', purple: '#bb9af7', amber: '#e0af68', red: '#f7768e',
+            shadow: '0 20px 60px rgba(0,0,0,.45)', colorScheme: 'dark',
+        },
+    },
+    {
+        id: 'nord', name: 'Nord', group: 'Dark',
+        vars: {
+            bg: '#242933', panel: '#2e3440', panel2: '#3b4252', line: '#434c5e',
+            text: '#eceff4', muted: '#9aa4b8',
+            blue: '#81a1c1', cyan: '#88c0d0', green: '#a3be8c', purple: '#b48ead', amber: '#ebcb8b', red: '#bf616a',
+            shadow: '0 20px 60px rgba(0,0,0,.4)', colorScheme: 'dark',
+        },
+    },
+    {
+        id: 'gruvbox', name: 'Gruvbox', group: 'Dark',
+        vars: {
+            bg: '#1d2021', panel: '#282828', panel2: '#32302f', line: '#504945',
+            text: '#ebdbb2', muted: '#a89984',
+            blue: '#83a598', cyan: '#8ec07c', green: '#b8bb26', purple: '#d3869b', amber: '#fabd2f', red: '#fb4934',
+            shadow: '0 20px 60px rgba(0,0,0,.4)', colorScheme: 'dark',
+        },
+    },
+    {
+        id: 'daylight', name: 'Daylight', group: 'Light',
+        vars: {
+            bg: '#edf2f8', panel: '#ffffff', panel2: '#f7f9fc', line: '#dce4ef',
+            text: '#142033', muted: '#657287',
+            blue: '#2563eb', cyan: '#0891b2', green: '#059669', purple: '#7c3aed', amber: '#d97706', red: '#dc2626',
+            shadow: '0 18px 55px rgba(36,55,87,.12)', colorScheme: 'light',
+        },
+    },
+    {
+        id: 'catppuccin-latte', name: 'Catppuccin Latte', group: 'Light',
+        vars: {
+            bg: '#eff1f5', panel: '#ffffff', panel2: '#e6e9ef', line: '#ccd0da',
+            text: '#4c4f69', muted: '#6c6f85',
+            blue: '#1e66f5', cyan: '#179299', green: '#40a02b', purple: '#8839ef', amber: '#df8e1d', red: '#d20f39',
+            shadow: '0 18px 55px rgba(76,79,105,.14)', colorScheme: 'light',
+        },
+    },
+];
+const STORAGE_KEY = 'mimo.theme.v1';
+exports.DEFAULT_THEME_ID = 'aurora';
+function getTheme(id) {
+    return exports.THEMES.find(t => t.id === id) ?? exports.THEMES[0];
+}
+function loadThemeId() {
+    try {
+        return localStorage.getItem(STORAGE_KEY) || exports.DEFAULT_THEME_ID;
+    }
+    catch {
+        return exports.DEFAULT_THEME_ID;
+    }
+}
+function saveThemeId(id) {
+    try {
+        localStorage.setItem(STORAGE_KEY, id);
+    }
+    catch { /* ignore */ }
+}
+// Apply a theme by writing CSS variables onto the given element (the .app root).
+function applyTheme(el, theme) {
+    const v = theme.vars;
+    const set = (name, value) => el.style.setProperty(name, value);
+    set('--bg', v.bg);
+    set('--panel', v.panel);
+    set('--panel-2', v.panel2);
+    set('--line', v.line);
+    set('--text', v.text);
+    set('--muted', v.muted);
+    set('--blue', v.blue);
+    set('--cyan', v.cyan);
+    set('--green', v.green);
+    set('--purple', v.purple);
+    set('--amber', v.amber);
+    set('--red', v.red);
+    set('--shadow', v.shadow);
+    set('color-scheme', v.colorScheme);
+}
 
 }},cache={};function require(id){if(cache[id])return cache[id].exports;if(!modules[id])throw new Error('Module not found: '+id);var module=cache[id]={exports:{}};modules[id](module,module.exports,require);return module.exports}require("app/main.js");})();
