@@ -3,16 +3,14 @@ from __future__ import annotations
 import ast
 import builtins as py_builtins
 import io
+import itertools
 import json
-import math
-import os
 import resource
 import signal
 import sys
-import traceback
 from collections import deque
 from dataclasses import dataclass
-from typing import Any
+from typing import Any, ClassVar
 
 MAX_EVENTS = 2500
 MAX_OUTPUT = 65536
@@ -88,7 +86,7 @@ class Limits:
     output: int = MAX_OUTPUT
 
 class SafetyVisitor(ast.NodeVisitor):
-    blocked_names = {
+    blocked_names: ClassVar[set[str]] = {
         "eval", "exec", "compile", "open", "__import__", "globals", "locals",
         "vars", "dir", "breakpoint", "help", "getattr", "setattr", "delattr",
         "input"  # replaced safely; direct use remains supported by runtime namespace
@@ -131,10 +129,7 @@ class SafetyVisitor(ast.NodeVisitor):
 def validate_source(code: str) -> ast.AST:
     if len(code) > MAX_SOURCE:
         raise SecurityError(f"Source is too large ({len(code)} characters; limit {MAX_SOURCE}).")
-    try:
-        tree = ast.parse(code, filename="<playground>")
-    except SyntaxError:
-        raise
+    tree = ast.parse(code, filename="<playground>")
     count = sum(1 for _ in ast.walk(tree))
     if count > MAX_AST_NODES:
         raise SecurityError(f"Program structure is too large ({count} nodes; limit {MAX_AST_NODES}).")
@@ -193,7 +188,7 @@ def build_structure(tree: ast.AST, code: str) -> dict[str, Any]:
             "indent": getattr(node, "col_offset", 0) // 4,
         })
     edges = []
-    for left, right in zip(nodes, nodes[1:]):
+    for left, right in itertools.pairwise(nodes):
         edges.append({"from": left["id"], "to": right["id"], "type": "next"})
     # Add explicit body / else relationships. They improve the flow view while execution remains trace-driven.
     by_line: dict[int, list[dict[str, Any]]] = {}
@@ -280,7 +275,7 @@ class Snapshotter:
     def preview(value: Any) -> str:
         try:
             text = repr(value)
-        except Exception:
+        except Exception:  # noqa: BLE001 - arbitrary user objects may raise anything in __repr__
             text = f"<{type(value).__name__}>"
         return text if len(text) <= 140 else text[:137] + "..."
 
@@ -349,13 +344,13 @@ class Snapshotter:
                 for key, item in attrs:
                     child = self.describe(item, heap, depth + 1)
                     descriptor["items"].append({"key": str(key), "value": self.preview(item), "ref": child})
-        except Exception as exc:
+        except Exception as exc:  # noqa: BLE001 - inspecting arbitrary user objects may raise anything
             descriptor["items"].append({"key": "inspection", "value": f"Unavailable: {exc}", "ref": None})
         return oid
 
 
 class OutputCapture(io.TextIOBase):
-    def __init__(self, tracer: "RuntimeTracer") -> None:
+    def __init__(self, tracer: RuntimeTracer) -> None:
         self.tracer = tracer
         self.value = ""
 
@@ -417,7 +412,7 @@ class RuntimeTracer:
                 continue
             try:
                 values[name] = self.snapshotter.preview(value)
-            except Exception:
+            except Exception:  # noqa: BLE001 - previewing arbitrary user values may raise anything
                 values[name] = "<unreadable>"
         return values
 
@@ -570,7 +565,8 @@ def set_limits() -> None:
         resource.setrlimit(resource.RLIMIT_FSIZE, (0, 0))
         resource.setrlimit(resource.RLIMIT_NOFILE, (16, 16))
         resource.setrlimit(resource.RLIMIT_NPROC, (0, 0))
-    except Exception:
+    except (ValueError, OSError):
+        # Some limits are not settable on every platform; best-effort hardening.
         pass
     sys.setrecursionlimit(100)
     signal.alarm(4)
@@ -593,14 +589,14 @@ def run(payload: dict[str, Any]) -> dict[str, Any]:
         sys.stdout = tracer.output
         sys.stderr = tracer.output
         sys.settrace(tracer.trace)
-        exec(compiled, namespace, namespace)
+        exec(compiled, namespace, namespace)  # noqa: S102 - running user code is the purpose of the sandbox
     except InputNeeded as exc:
         status = "needs_input"
         needs_input = {"prompt": exc.prompt, "index": len(inputs)}
     except TraceLimit as exc:
         status = "stopped"
         error = {"type": "ExecutionLimit", "message": str(exc)}
-    except BaseException as exc:
+    except BaseException as exc:  # noqa: BLE001 - sandbox must capture every failure from user code as structured output
         status = "error"
         error = {"type": type(exc).__name__, "message": str(exc),
                  "hint": COMMON_ERROR_HINTS.get(type(exc).__name__, "")}
@@ -633,7 +629,7 @@ def main() -> None:
             "status": "blocked", "events": [], "structure": {"nodes": [], "edges": []}, "output": "",
             "error": {"type": "SecurityError", "message": str(exc)}, "needsInput": None,
         }
-    except BaseException as exc:
+    except BaseException as exc:  # noqa: BLE001 - top-level guard must report any failure as structured JSON
         result = {
             "status": "error", "events": [], "structure": {"nodes": [], "edges": []}, "output": "",
             "error": {"type": type(exc).__name__, "message": str(exc)}, "needsInput": None,
