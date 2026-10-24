@@ -2,10 +2,11 @@ import { useEffect, useState } from 'react'
 import { AlertTriangle, ArrowRight, Box, Braces, ChevronDown, ChevronRight, Info, Sparkles } from '../icons'
 import type { TraceEvent, TraceResult } from '../types'
 import { deriveChanges } from '../lib/trace'
+import { tutorRequestFields, type TutorConfig } from '../lib/tutorConfig'
 
 type Tab = 'state' | 'stack' | 'explain'
 
-export function Inspector({ event, previous, explanationMode, onExplanationMode, code, error }: { event?: TraceEvent; previous?: TraceEvent; explanationMode: 'beginner' | 'technical'; onExplanationMode: (mode: 'beginner' | 'technical') => void; code?: string; error?: TraceResult['error'] }) {
+export function Inspector({ event, previous, explanationMode, onExplanationMode, code, error, tutorConfig }: { event?: TraceEvent; previous?: TraceEvent; explanationMode: 'beginner' | 'technical'; onExplanationMode: (mode: 'beginner' | 'technical') => void; code?: string; error?: TraceResult['error']; tutorConfig?: TutorConfig }) {
   const [tab, setTab] = useState<Tab>('state')
   const [openObjects, setOpenObjects] = useState<Set<string>>(new Set())
   const changes = deriveChanges(previous, event)
@@ -25,7 +26,7 @@ export function Inspector({ event, previous, explanationMode, onExplanationMode,
         <code>{error!.message}</code>
       </div>
       {error!.hint && <div className="exception-card"><AlertTriangle size={18}/><div><strong>Likely cause</strong><p className="exception-hint">💡 {error!.hint}</p></div></div>}
-      <TutorPanel code={code} error={error} mode={explanationMode}/>
+      <TutorPanel code={code} error={error} mode={explanationMode} tutorConfig={tutorConfig}/>
     </div> : !event ? <div className="inspector-empty"><Sparkles size={22}/><p>Runtime details will appear here as you step through the trace.</p></div> : <div className="inspector-body">
       {tab === 'state' && <>
         <div className="event-card">
@@ -55,13 +56,13 @@ export function Inspector({ event, previous, explanationMode, onExplanationMode,
         <div className="explanation-card"><div><Sparkles size={17}/><span>{explanationMode === 'beginner' ? 'PLAIN LANGUAGE' : 'PYTHON RUNTIME'}</span></div><p>{explanationMode === 'beginner' ? event.beginner : event.technical}</p></div>
         <InspectorSection title="Why it matters"><p className="why-copy">{whyItMatters(event)}</p></InspectorSection>
         {event.exception && <div className="exception-card"><AlertTriangle size={18}/><div><strong>{event.exception.type}</strong><p>{event.exception.message}</p>{event.exception.hint && <p className="exception-hint">💡 {event.exception.hint}</p>}</div></div>}
-        <TutorPanel event={event} code={code} error={error} mode={explanationMode}/>
+        <TutorPanel event={event} code={code} error={error} mode={explanationMode} tutorConfig={tutorConfig}/>
       </>}
     </div>}
   </section>
 }
 
-function TutorPanel({ event, code, error, mode }: { event?: TraceEvent; code?: string; error?: TraceResult['error']; mode: 'beginner' | 'technical' }) {
+function TutorPanel({ event, code, error, mode, tutorConfig }: { event?: TraceEvent; code?: string; error?: TraceResult['error']; mode: 'beginner' | 'technical'; tutorConfig?: TutorConfig }) {
   const [question, setQuestion] = useState('')
   const [answer, setAnswer] = useState('')
   const [loading, setLoading] = useState(false)
@@ -88,6 +89,7 @@ function TutorPanel({ event, code, error, mode }: { event?: TraceEvent; code?: s
             line: error?.line ?? 0, type: 'error', source: '', function: '',
             variables: [], output: '', error: error ?? null,
           },
+          ...(tutorConfig ? tutorRequestFields(tutorConfig) : {}),
         }),
       })
       if (!response.ok) throw new Error((await response.json().catch(() => ({}))).detail || 'The tutor is unavailable right now.')

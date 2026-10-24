@@ -43,3 +43,24 @@ button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid 
 .autocomplete li.keyword span{color:#c792ea}
 .autocomplete li.builtin span{color:#82aaff}
 .autocomplete li.name span{color:#addb67}
+
+.setting-row.no-border{border-top:0;padding-bottom:4px}
+.tutor-settings{border-top:1px solid var(--line);padding-top:12px;margin-top:4px}
+.tutor-config-grid{display:flex;flex-direction:column;gap:9px;margin:4px 0 10px}
+.tcfg{display:flex;flex-direction:column;gap:4px}
+.tcfg>span{font-size:8px;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);font-weight:800;display:flex;justify-content:space-between;align-items:center}
+.tcfg>span a{text-transform:none;letter-spacing:0;font-weight:700;color:var(--cyan);text-decoration:none}
+.tcfg>span a:hover{text-decoration:underline}
+.tcfg input,.tcfg select{background:var(--panel-2);border:1px solid var(--line);color:var(--text);font-size:10px;padding:8px 9px;border-radius:7px;outline:none;width:100%}
+.tcfg input:focus,.tcfg select:focus{border-color:var(--purple)}
+.key-input{display:flex;gap:6px}
+.key-input input{flex:1;min-width:0;font-family:'DM Mono',monospace}
+.key-input button{border:1px solid var(--line);background:var(--panel-2);color:var(--muted);border-radius:7px;padding:0 10px;font-size:8px;font-weight:700;cursor:pointer}
+.key-input button:hover{color:var(--text)}
+.tutor-config-actions{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:8px}
+.test-result{font-size:9px;line-height:1.4}
+.test-result.ok{color:var(--green)}
+.test-result.bad{color:var(--red)}
+.tutor-links{font-size:9px;color:var(--muted);margin:0 0 4px}
+.tutor-links a{color:var(--cyan);text-decoration:none}
+.tutor-links a:hover{text-decoration:underline}

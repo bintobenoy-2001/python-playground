@@ -6,6 +6,7 @@ import { Inspector } from './components/Inspector'
 import { Timeline } from './components/Timeline'
 import { examples, type Example } from './data/examples'
 import type { TraceResult, ViewMode } from './types'
+import { loadTutorConfig, saveTutorConfig, tutorRequestFields, PROVIDER_META, type TutorConfig, type TutorProvider } from './lib/tutorConfig'
 import './styles.css'
 
 const EMPTY_RESULT: TraceResult = { status: 'completed', events: [], structure: { nodes: [], edges: [] }, output: '', error: null, needsInput: null }
@@ -28,6 +29,7 @@ function App() {
   const [pendingInput, setPendingInput] = useState('')
   const [breakpoint, setBreakpoint] = useState<number | null>(null)
   const [mobileTab, setMobileTab] = useState<'code' | 'visual' | 'state'>('visual')
+  const [tutorConfig, setTutorConfig] = useState<TutorConfig>(loadTutorConfig)
   const stale = result.events.length > 0 && code !== baseline
   const event = result.events[index]
   const previous = index > 0 ? result.events[index - 1] : undefined
@@ -108,14 +110,14 @@ function App() {
         <VisualCanvas result={stale ? EMPTY_RESULT : result} event={stale ? undefined : event} index={index} mode={mode} onMode={setMode}/>
       </div>
       <div className={`workspace-pane right-pane ${mobileTab === 'state' ? 'mobile-active' : ''}`}>
-        <Inspector event={stale ? undefined : event} previous={stale ? undefined : previous} explanationMode={explanationMode} onExplanationMode={setExplanationMode} code={code} error={result.error}/>
+        <Inspector event={stale ? undefined : event} previous={stale ? undefined : previous} explanationMode={explanationMode} onExplanationMode={setExplanationMode} code={code} error={result.error} tutorConfig={tutorConfig}/>
       </div>
     </main>
 
     <Timeline events={stale ? [] : result.events} index={index} playing={playing} speed={speed} breakpoint={breakpoint} onIndex={setIndex} onPlay={() => setPlaying(p => !p)} onStop={() => setPlaying(false)} onRestart={() => { setIndex(0); setPlaying(false) }} onSpeed={setSpeed} onBreakpoint={setBreakpoint}/>
 
     {showExamples && <ExampleLibrary onClose={() => setShowExamples(false)} onSelect={loadExample}/>} 
-    {showSettings && <SettingsModal onClose={() => setShowSettings(false)} mode={explanationMode} onMode={setExplanationMode} speed={speed} onSpeed={setSpeed}/>} 
+    {showSettings && <SettingsModal onClose={() => setShowSettings(false)} mode={explanationMode} onMode={setExplanationMode} speed={speed} onSpeed={setSpeed} tutorConfig={tutorConfig} onTutorConfig={next => { setTutorConfig(next); saveTutorConfig(next) }}/>} 
     {result.needsInput && <div className="modal-backdrop input-backdrop"><div className="input-modal"><div className="input-icon"><Zap size={22}/></div><span>PROGRAM PAUSED</span><h2>Python is waiting for input</h2><p>{result.needsInput.prompt || 'Enter a value to continue.'}</p><input autoFocus value={pendingInput} onChange={event => setPendingInput(event.target.value)} onKeyDown={event => event.key === 'Enter' && submitInput()} placeholder="Type a value…"/><div><button className="secondary" onClick={() => setResult(r => ({...r, needsInput: null, status: 'stopped'}))}>Stop</button><button className="primary" onClick={submitInput}>Send to Python <ChevronRight size={15}/></button></div><small>input() always returns text. Convert it with int() or float() when needed.</small></div></div>}
   </div>
 }
@@ -131,14 +133,79 @@ function ExampleLibrary({ onClose, onSelect }: { onClose: () => void; onSelect: 
   </aside></div>
 }
 
-function SettingsModal({ onClose, mode, onMode, speed, onSpeed }: { onClose: () => void; mode: 'beginner' | 'technical'; onMode: (m: 'beginner' | 'technical') => void; speed: number; onSpeed: (n: number) => void }) {
+function SettingsModal({ onClose, mode, onMode, speed, onSpeed, tutorConfig, onTutorConfig }: { onClose: () => void; mode: 'beginner' | 'technical'; onMode: (m: 'beginner' | 'technical') => void; speed: number; onSpeed: (n: number) => void; tutorConfig: TutorConfig; onTutorConfig: (c: TutorConfig) => void }) {
   return <div className="modal-backdrop" onMouseDown={event => event.target === event.currentTarget && onClose()}><div className="settings-modal"><div className="settings-head"><div><span>PLAYGROUND SETTINGS</span><h2>Shape your learning view</h2></div><button onClick={onClose}><X size={18}/></button></div>
     <div className="setting-row"><div><strong>Explanation language</strong><p>Switch without losing your current execution position.</p></div><div className="segmented"><button className={mode === 'beginner' ? 'active' : ''} onClick={() => onMode('beginner')}>Beginner</button><button className={mode === 'technical' ? 'active' : ''} onClick={() => onMode('technical')}>Technical</button></div></div>
     <div className="setting-row"><div><strong>Playback speed</strong><p>Animations remain interruptible at every speed.</p></div><select value={speed} onChange={e => onSpeed(Number(e.target.value))}><option value={1400}>Calm · 0.5×</option><option value={850}>Normal · 1×</option><option value={450}>Quick · 2×</option><option value={220}>Scan · 4×</option></select></div>
-    <div className="setting-row"><div><strong>Reduced motion</strong><p>The interface follows your operating system preference automatically.</p></div><span className="auto-badge"><Check size={14}/> Auto</span></div>
+    <TutorSettings config={tutorConfig} onChange={onTutorConfig}/>
     <div className="limits-note"><ShieldCheck size={18}/><div><strong>Execution guardrails</strong><p>3 seconds CPU · 2,500 events · 64 KB output · restricted imports and host access</p></div></div>
     <button className="primary full" onClick={onClose}>Save preferences</button>
   </div></div>
+}
+
+function TutorSettings({ config, onChange }: { config: TutorConfig; onChange: (c: TutorConfig) => void }) {
+  const [showKey, setShowKey] = useState(false)
+  const [testing, setTesting] = useState(false)
+  const [testResult, setTestResult] = useState<{ ok: boolean; text: string } | null>(null)
+  const providers: TutorProvider[] = ['server', 'openai', 'anthropic', 'openrouter', 'nvidia', 'custom']
+  const meta = config.provider !== 'server' ? PROVIDER_META[config.provider] : undefined
+
+  const update = (patch: Partial<TutorConfig>) => { setTestResult(null); onChange({ ...config, ...patch }) }
+
+  const test = async () => {
+    setTesting(true); setTestResult(null)
+    try {
+      const response = await fetch('/api/tutor', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code: 'print("hello")', question: 'Reply with the single word: ready.', mode: 'beginner', ...tutorRequestFields(config) }),
+      })
+      const data = await response.json().catch(() => ({}))
+      if (!response.ok) throw new Error(data.detail || 'Request failed.')
+      if (data.enabled === false) setTestResult({ ok: false, text: 'No key configured — the tutor is in offline mode.' })
+      else setTestResult({ ok: true, text: `Connected to ${data.provider || 'server'} (${data.model || 'default model'}).` })
+    } catch (err) {
+      setTestResult({ ok: false, text: err instanceof Error ? err.message : 'Connection failed.' })
+    } finally { setTesting(false) }
+  }
+
+  return <div className="tutor-settings">
+    <div className="setting-row no-border"><div><strong>AI tutor</strong><p>Bring your own API key. It is stored only in this browser and sent directly with each question — never saved on the server.</p></div></div>
+    <div className="tutor-config-grid">
+      <label className="tcfg">
+        <span>Provider</span>
+        <select value={config.provider} onChange={e => update({ provider: e.target.value as TutorProvider })}>
+          <option value="server">Server default (offline if none)</option>
+          <option value="openai">OpenAI</option>
+          <option value="anthropic">Anthropic (Claude)</option>
+          <option value="openrouter">OpenRouter</option>
+          <option value="nvidia">NVIDIA NIM</option>
+          <option value="custom">Custom (OpenAI-compatible)</option>
+        </select>
+      </label>
+      {config.provider !== 'server' && <>
+        <label className="tcfg">
+          <span>API key {meta?.keyUrl && <a href={meta.keyUrl} target="_blank" rel="noopener noreferrer">{meta.keyUrlLabel} ↗</a>}</span>
+          <div className="key-input">
+            <input type={showKey ? 'text' : 'password'} value={config.apiKey} onChange={e => update({ apiKey: e.target.value })} placeholder={meta?.keyPlaceholder} autoComplete="off" spellCheck={false}/>
+            <button type="button" onClick={() => setShowKey(s => !s)}>{showKey ? 'Hide' : 'Show'}</button>
+          </div>
+        </label>
+        <label className="tcfg">
+          <span>Model</span>
+          <input value={config.model} onChange={e => update({ model: e.target.value })} placeholder={meta?.modelPlaceholder} autoComplete="off" spellCheck={false}/>
+        </label>
+        {config.provider === 'custom' && <label className="tcfg">
+          <span>Base URL</span>
+          <input value={config.baseUrl} onChange={e => update({ baseUrl: e.target.value })} placeholder="https://host/v1" autoComplete="off" spellCheck={false}/>
+        </label>}
+      </>}
+    </div>
+    <div className="tutor-config-actions">
+      <button className="secondary" onClick={test} disabled={testing}>{testing ? 'Testing…' : 'Test connection'}</button>
+      {testResult && <span className={`test-result ${testResult.ok ? 'ok' : 'bad'}`}>{testResult.ok ? '✓' : '✕'} {testResult.text}</span>}
+    </div>
+    <p className="tutor-links">New to this? Free options: <a href="https://openrouter.ai/keys" target="_blank" rel="noopener noreferrer">OpenRouter ↗</a> · <a href="https://build.nvidia.com/settings/api-keys" target="_blank" rel="noopener noreferrer">NVIDIA NIM ↗</a></p>
+  </div>
 }
 
 export default App

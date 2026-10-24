@@ -67,6 +67,23 @@ class TutorRequest(BaseModel):
     question: str = Field(default="", max_length=600)
     mode: str = Field(default="beginner")  # "beginner" | "technical"
     event: EventContext | None = None
+    # Optional per-request provider config supplied by the user's browser. When present,
+    # it overrides the server .env defaults. The key is used only to make this one request
+    # and is never written to disk or logged.
+    provider: str | None = None  # "openai" | "anthropic" | "openrouter" | "nvidia" | "custom"
+    apiKey: str | None = Field(default=None, max_length=400)
+    model: str | None = Field(default=None, max_length=200)
+    baseUrl: str | None = Field(default=None, max_length=400)
+
+
+# Default base URL per provider. "custom" and the server .env use LLM_BASE_URL.
+PROVIDER_BASE_URLS = {
+    "openai": "https://api.openai.com/v1",
+    "openrouter": "https://openrouter.ai/api/v1",
+    "nvidia": "https://integrate.api.nvidia.com/v1",
+    "anthropic": "https://api.anthropic.com/v1",
+}
+
 
 @app.get("/api/health")
 async def health() -> dict[str, str]:
@@ -109,52 +126,103 @@ def build_tutor_prompt(req: "TutorRequest") -> str:
     return "\n\n".join(parts)
 
 
+async def _call_openai_compatible(base_url: str, api_key: str, model: str, prompt: str,
+                                  extra_headers: dict[str, str] | None = None) -> str:
+    payload = {
+        "model": model,
+        "messages": [
+            {"role": "system", "content": TUTOR_SYSTEM},
+            {"role": "user", "content": prompt},
+        ],
+        "temperature": 0.3,
+        # Headroom for models that spend part of the budget on hidden reasoning tokens.
+        "max_tokens": 1024,
+    }
+    headers = {"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"}
+    if extra_headers:
+        headers.update(extra_headers)
+    async with httpx.AsyncClient(timeout=45.0) as client:
+        response = await client.post(
+            f"{base_url.rstrip('/')}/chat/completions", json=payload, headers=headers
+        )
+    if response.status_code >= 400:
+        raise HTTPException(status_code=502, detail=f"LLM provider error ({response.status_code}): {response.text[:300]}")
+    try:
+        message = response.json()["choices"][0]["message"]
+        answer = (message.get("content") or "").strip()
+        if not answer:  # reasoning models sometimes place text here
+            answer = (message.get("reasoning_content") or "").strip()
+        return answer
+    except (KeyError, IndexError, ValueError) as exc:
+        raise HTTPException(status_code=502, detail="LLM provider returned an unexpected response.") from exc
+
+
+async def _call_anthropic(base_url: str, api_key: str, model: str, prompt: str) -> str:
+    payload = {
+        "model": model,
+        "system": TUTOR_SYSTEM,
+        "messages": [{"role": "user", "content": prompt}],
+        "max_tokens": 1024,
+        "temperature": 0.3,
+    }
+    headers = {
+        "x-api-key": api_key,
+        "anthropic-version": "2023-06-01",
+        "content-type": "application/json",
+    }
+    async with httpx.AsyncClient(timeout=45.0) as client:
+        response = await client.post(f"{base_url.rstrip('/')}/messages", json=payload, headers=headers)
+    if response.status_code >= 400:
+        raise HTTPException(status_code=502, detail=f"Anthropic error ({response.status_code}): {response.text[:300]}")
+    try:
+        blocks = response.json().get("content", [])
+        return "".join(b.get("text", "") for b in blocks if b.get("type") == "text").strip()
+    except (KeyError, ValueError) as exc:
+        raise HTTPException(status_code=502, detail="Anthropic returned an unexpected response.") from exc
+
+
 @app.post("/api/tutor")
 async def tutor(request: TutorRequest) -> dict:
-    if not LLM_ENABLED:
+    # Resolve config: an explicit per-request key (from the browser) wins over the
+    # server .env. This lets each user bring their own provider and key.
+    provider = (request.provider or "").lower().strip()
+    api_key = (request.apiKey or "").strip() or LLM_API_KEY
+    if not api_key:
         return {
             "enabled": False,
             "answer": (
-                "The AI tutor is not configured on this server, so the playground is using its "
-                "built-in offline explanations. To enable the AI tutor, set the LLM_API_KEY "
-                "environment variable (and optionally LLM_BASE_URL and LLM_MODEL)."
+                "No AI tutor is configured. Open Settings → AI tutor to paste an API key for "
+                "OpenAI, Anthropic, OpenRouter, or NVIDIA, or set the LLM_API_KEY environment "
+                "variable on the server. Until then the playground uses its built-in offline "
+                "explanations."
             ),
         }
-    payload = {
-        "model": LLM_MODEL,
-        "messages": [
-            {"role": "system", "content": TUTOR_SYSTEM},
-            {"role": "user", "content": build_tutor_prompt(request)},
-        ],
-        "temperature": 0.3,
-        # Headroom for models that spend part of the budget on hidden reasoning tokens
-        # before producing the visible answer.
-        "max_tokens": 1024,
-    }
-    headers = {"Authorization": f"Bearer {LLM_API_KEY}", "Content-Type": "application/json"}
+
+    # Determine base URL and model from the request, provider defaults, or env.
+    if request.baseUrl:
+        base_url = request.baseUrl.strip()
+    elif provider in PROVIDER_BASE_URLS:
+        base_url = PROVIDER_BASE_URLS[provider]
+    else:
+        base_url = LLM_BASE_URL
+    model = (request.model or "").strip() or LLM_MODEL
+
+    prompt = build_tutor_prompt(request)
     try:
-        async with httpx.AsyncClient(timeout=45.0) as client:
-            response = await client.post(
-                f"{LLM_BASE_URL.rstrip('/')}/chat/completions", json=payload, headers=headers
-            )
+        if provider == "anthropic":
+            answer = await _call_anthropic(base_url, api_key, model, prompt)
+        else:
+            # OpenRouter benefits from attribution headers; harmless elsewhere.
+            extra = {"HTTP-Referer": "https://mimo-playground.local", "X-Title": "MIMO Python Playground"} if provider == "openrouter" else None
+            answer = await _call_openai_compatible(base_url, api_key, model, prompt, extra)
+    except HTTPException:
+        raise
     except httpx.HTTPError as exc:
         raise HTTPException(status_code=502, detail=f"Could not reach the LLM provider: {exc}") from exc
-    if response.status_code >= 400:
-        detail = response.text[:300]
-        raise HTTPException(status_code=502, detail=f"LLM provider error ({response.status_code}): {detail}")
-    try:
-        data = response.json()
-        message = data["choices"][0]["message"]
-        answer = (message.get("content") or "").strip()
-        # Some NVIDIA/reasoning models return the visible text under reasoning_content
-        # when content is empty.
-        if not answer:
-            answer = (message.get("reasoning_content") or "").strip()
-    except (KeyError, IndexError, ValueError) as exc:
-        raise HTTPException(status_code=502, detail="LLM provider returned an unexpected response.") from exc
+
     if not answer:
         answer = "The model did not return any text. Try asking again or rephrasing the question."
-    return {"enabled": True, "answer": answer, "model": LLM_MODEL}
+    return {"enabled": True, "answer": answer, "model": model, "provider": provider or "server"}
 
 @app.post("/api/trace")
 async def trace(request: TraceRequest) -> dict:

@@ -54,6 +54,20 @@ precedence over the `.env` file.
 
 `GET /api/health` reports `"tutor": "enabled"` or `"offline"` so you can confirm the configuration.
 
+### Bring your own key (in the UI)
+
+Users can also configure the tutor without touching the server. Open **Settings → AI tutor**, pick a
+provider, paste an API key, and (optionally) a model:
+
+- **OpenAI**, **OpenRouter**, **NVIDIA NIM** — OpenAI-compatible chat completions.
+- **Anthropic (Claude)** — uses the native Messages API; handled automatically.
+- **Custom** — any OpenAI-compatible endpoint via a base URL.
+
+The key is stored **only in the browser** (`localStorage`) and sent directly with each tutor request;
+it is never written to disk or logged on the server. A per-request key overrides the server `.env`
+default. The panel includes a **Test connection** button and links to get a free key from
+[OpenRouter](https://openrouter.ai/keys) or [NVIDIA NIM](https://build.nvidia.com/settings/api-keys).
+
 > Not every model listed by `GET /v1/models` is provisioned for every account, some return HTTP 404
 > on invocation. `minimaxai/minimax-m3.1-flash` was verified working and fast. Heavy reasoning models
 > (e.g. `nvidia/nemotron-3.5-lightning-30b-a3b`) can spend the whole token budget on hidden reasoning
